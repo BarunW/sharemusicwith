@@ -3350,3 +3350,94 @@ textarea:focus-visible,
       0 20px 40px -10px rgba(0, 0, 0, 0.72);
   }
 }
+
+/* ---- Site footer (discovery home) -------------------------------------- */
+.site-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1.4rem;
+  margin-top: 3rem;
+  padding: 1.6rem 0 2.6rem;
+  border-top: 1px solid var(--d-border, rgba(255, 255, 255, 0.08));
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.site-footer-brand {
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
+.site-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.2rem;
+  flex: 1;
+}
+.site-footer-links a {
+  color: var(--muted);
+  text-decoration: none;
+}
+.site-footer-links a:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+.site-footer-copy {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* ---- Standalone legal page (privacy.html — no wasm) -------------------- */
+.legal-page {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 5rem;
+  color: var(--text);
+  line-height: 1.65;
+}
+.legal-back {
+  display: inline-block;
+  margin-bottom: 2rem;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+.legal-back:hover {
+  color: var(--text);
+}
+.legal-page h1 {
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  margin: 0 0 0.3rem;
+}
+.legal-page h2 {
+  font-size: 1.2rem;
+  margin: 2.2rem 0 0.6rem;
+}
+.legal-updated {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin: 0 0 1.8rem;
+}
+.legal-page p,
+.legal-page li {
+  color: var(--muted);
+}
+.legal-page strong {
+  color: var(--text);
+}
+.legal-page ul {
+  padding-left: 1.2rem;
+}
+.legal-page li {
+  margin: 0.3rem 0;
+}
+.legal-page a {
+  color: var(--accent);
+}
+.legal-note {
+  margin-top: 2.5rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--d-border, rgba(255, 255, 255, 0.08));
+  font-size: 0.82rem;
+  font-style: italic;
+}

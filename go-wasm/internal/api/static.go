@@ -27,6 +27,14 @@ func (s *Server) serveStaticOrIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Standalone static legal page (no SPA/wasm). Served from a clean URL; the
+	// footer links here. Kept out of the SPA so it loads instantly without the
+	// wasm bundle.
+	if upath == "/privacy" {
+		http.ServeFile(w, r, filepath.Join(s.staticDirAbs, "privacy.html"))
+		return
+	}
+
 	clean := filepath.Clean(upath)
 	full := filepath.Join(s.staticDirAbs, clean)
 	// Reject anything that escapes the static root.
