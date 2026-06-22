@@ -1,0 +1,10 @@
+# Build artifacts are produced inside the image — don't ship stale copies.
+main.wasm
+server
+cwp-server-bin
+.gocache
+
+# Not needed in the image.
+*.md
+.env
+deploy/

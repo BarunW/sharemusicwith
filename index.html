@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Connect With Playlist</title>
+    <link rel="preconnect" href="https://www.youtube.com" />
+    <link rel="preconnect" href="https://open.spotify.com" />
+    <link rel="preconnect" href="https://embed.music.apple.com" />
+    <link rel="dns-prefetch" href="https://i.scdn.co" />
+    <link rel="dns-prefetch" href="https://is1-ssl.mzstatic.com" />
+    <link rel="dns-prefetch" href="https://i.ytimg.com" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell" data-theme="storybook">
+      <section class="workspace" aria-label="Playlist page builder">
+        <aside class="panel editor-panel" aria-label="Page controls">
+          <div class="brand-row">
+            <div class="brand-mark" aria-hidden="true">
+              <span></span>
+            </div>
+            <div>
+              <p class="eyebrow">Connect With Playlist</p>
+              <h1>Build a shareable music page</h1>
+            </div>
+          </div>
+          <button class="view-button" id="viewOnly" type="button">View Page</button>
+
+          <form class="control-stack" id="pageForm">
+            <fieldset>
+              <legend>User Info</legend>
+              <label>
+                <span>Name</span>
+                <input id="displayName" type="text" maxlength="42" autocomplete="name" />
+              </label>
+              <label>
+                <span>Handle</span>
+                <input id="handle" type="text" maxlength="32" autocomplete="username" />
+              </label>
+              <label>
+                <span>Short Bio</span>
+                <textarea id="bio" rows="3" maxlength="150"></textarea>
+              </label>
+            </fieldset>
+
+            <fieldset>
+              <legend>Theme</legend>
+              <div class="theme-grid" id="themeGrid" role="radiogroup" aria-label="Choose a page theme">
+                <button type="button" class="theme-tile is-active" data-theme-option="storybook" role="radio" aria-checked="true">
+                  <span class="swatch storybook"></span>
+                  <span>Storybook</span>
+                </button>
+                <button type="button" class="theme-tile" data-theme-option="cyber" role="radio" aria-checked="false">
+                  <span class="swatch cyber"></span>
+                  <span>Cyber</span>
+                </button>
+                <button type="button" class="theme-tile" data-theme-option="nature" role="radio" aria-checked="false">
+                  <span class="swatch nature"></span>
+                  <span>Nature</span>
+                </button>
+                <button type="button" class="theme-tile" data-theme-option="minimal" role="radio" aria-checked="false">
+                  <span class="swatch minimal"></span>
+                  <span>Minimal</span>
+                </button>
+              </div>
+
+              <div class="segmented" role="group" aria-label="Preview density">
+                <button type="button" class="is-active" data-density="focused">Focused</button>
+                <button type="button" data-density="compact">Compact</button>
+              </div>
+            </fieldset>
+          </form>
+        </aside>
+
+        <section class="phone-stage" aria-label="Live page preview">
+          <button class="exit-view-button" id="exitView" type="button">Edit Page</button>
+          <div class="phone" id="publicPage">
+            <div class="ambient-layer" aria-hidden="true"></div>
+            <section class="profile-card glass-card">
+              <div class="companions" aria-hidden="true">
+                <div class="pet pet-cat">
+                  <span class="pet-tail"></span>
+                  <span class="pet-body"></span>
+                  <span class="pet-head">
+                    <span class="pet-ear left"></span>
+                    <span class="pet-ear right"></span>
+                    <span class="pet-face"></span>
+                  </span>
+                </div>
+                <div class="pet pet-dog">
+                  <span class="pet-tail"></span>
+                  <span class="pet-body"></span>
+                  <span class="pet-head">
+                    <span class="pet-ear left"></span>
+                    <span class="pet-ear right"></span>
+                    <span class="pet-face"></span>
+                  </span>
+                </div>
+              </div>
+              <div class="avatar" id="avatar">D</div>
+              <div>
+                <p class="handle" id="previewHandle">@dreamlistener</p>
+                <h2 id="previewName">Dream Listener</h2>
+                <p id="previewBio">A small public page for every playlist I want friends to hear.</p>
+              </div>
+            </section>
+
+            <section class="playlist-card glass-card">
+              <div class="section-heading">
+                <p>Playlist</p>
+                <h3 id="previewTitle">Weekend Rotation</h3>
+              </div>
+
+              <section class="playlist-inline-player" id="playlistInlinePlayer" aria-label="Playlist player" hidden>
+                <div class="inline-player-header">
+                  <div>
+                    <p class="platform-pill" id="inlinePlayerPlatform">Spotify</p>
+                    <h4 id="inlinePlayerTitle">Playlist</h4>
+                  </div>
+                  <button class="inline-player-close" id="closeInlinePlayer" type="button" aria-label="Close player" title="Close player">×</button>
+                </div>
+                <div class="inline-player-frame" id="inlinePlayerFrame"></div>
+              </section>
+
+              <div class="embed-stack" id="embedStack"></div>
+            </section>
+
+            <section class="theme-note glass-card">
+              <span class="note-line"></span>
+              <p id="themeNote">Soft painted color, calm spacing, and a page that feels personal without becoming heavy.</p>
+            </section>
+          </div>
+
+          <section class="playlist-webview glass-card" id="playlistWebview" aria-label="Inline playlist player" hidden>
+            <div class="webview-header">
+              <div>
+                <p class="platform-pill" id="webviewPlatform">Spotify</p>
+                <h2 id="webviewTitle">Playlist</h2>
+              </div>
+              <button class="webview-close" id="closeWebview" type="button" aria-label="Close player" title="Close player">×</button>
+            </div>
+            <div class="webview-frame" id="webviewFrame"></div>
+          </section>
+        </section>
+
+        <aside class="panel data-panel" aria-label="Playlist and sharing controls">
+          <div class="panel-heading">
+            <p class="eyebrow">Publishing</p>
+            <h2>Playlist &amp; Share</h2>
+          </div>
+          <div class="control-stack">
+            <fieldset>
+              <legend>Playlist</legend>
+              <label>
+                <span>Section Heading</span>
+                <input id="pageTitle" type="text" maxlength="56" />
+              </label>
+              <label>
+                <span>Playlist Name</span>
+                <input id="playlistName" type="text" maxlength="56" placeholder="Late night drive" />
+              </label>
+              <div class="link-composer">
+                <label>
+                  <span>Public Playlist Link</span>
+                  <input
+                    id="playlistUrl"
+                    type="url"
+                    inputmode="url"
+                    placeholder="https://open.spotify.com/playlist/..."
+                  />
+                </label>
+                <button class="icon-button" type="button" id="addLink" aria-label="Add playlist link" title="Add link">
+                  +
+                </button>
+              </div>
+              <div class="playlist-list" id="playlistList" aria-live="polite"></div>
+              <button class="demo-button" id="addSpotifyPreview" type="button">Add Spotify Preview</button>
+            </fieldset>
+
+            <fieldset class="publish-panel">
+              <legend>Status</legend>
+              <p class="status-text" id="statusText">Public links only. No API keys required for this prototype.</p>
+            </fieldset>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <template id="playlistItemTemplate">
+      <article class="playlist-item">
+        <div>
+          <strong></strong>
+          <span></span>
+        </div>
+        <button type="button" aria-label="Remove playlist link" title="Remove link">×</button>
+      </article>
+    </template>
+
+    <template id="embedTemplate">
+      <article class="music-block">
+        <div class="music-meta">
+          <span class="platform-pill"></span>
+          <a target="_blank" rel="noreferrer"></a>
+          <button class="webview-toggle" type="button"></button>
+        </div>
+        <div class="embed-target"></div>
+      </article>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>

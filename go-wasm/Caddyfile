@@ -1,0 +1,8 @@
+# Staging reverse proxy. Caddy obtains a Let's Encrypt cert for $DOMAIN
+# automatically and forwards X-Forwarded-For / X-Forwarded-Proto by default,
+# which the app reads (TRUSTED_PROXIES) for per-visitor metric dedup. `encode`
+# compresses responses so the ~11 MB main.wasm transfers at ~3 MB.
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy app:8081
+}

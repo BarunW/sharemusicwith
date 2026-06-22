@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ShareMusicWith</title>
+    <link rel="preconnect" href="https://www.youtube.com" />
+    <link rel="preconnect" href="https://open.spotify.com" />
+    <link rel="preconnect" href="https://embed.music.apple.com" />
+    <link rel="dns-prefetch" href="https://i.scdn.co" />
+    <link rel="dns-prefetch" href="https://is1-ssl.mzstatic.com" />
+    <link rel="dns-prefetch" href="https://i.ytimg.com" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=Gaegu:wght@400;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Kaushan+Script&family=Patrick+Hand&family=Press+Start+2P&family=Yomogi&display=swap"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <!-- Watercolor edge filter (used by the Ink Wash theme's playlist card):
+         turbulence + displacement feathers the pigment-wash edges so they
+         bleed like wet paint instead of sitting on hard gradient stops. -->
+    <svg class="svg-defs" aria-hidden="true" focusable="false" width="0" height="0" style="position:absolute">
+      <defs>
+        <filter id="wc-edge" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+          <feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="4" seed="7" result="noise" />
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="19" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+      </defs>
+    </svg>
+    <main class="app-shell" data-theme="storybook" data-mode="create">
+      <section class="workspace" aria-label="Playlist page builder">
+        <aside class="panel editor-panel" aria-label="Page controls">
+          <div class="brand-row">
+            <div class="brand-mark" aria-hidden="true">
+              <span></span>
+            </div>
+            <div>
+              <p class="eyebrow">ShareMusicWith</p>
+              <h1>Build a shareable music page</h1>
+            </div>
+          </div>
+          <button class="view-button" id="viewOnly" type="button">View Page</button>
+
+          <form class="control-stack" id="pageForm">
+            <fieldset>
+              <legend>User Info</legend>
+              <label>
+                <span>Name</span>
+                <input id="displayName" type="text" maxlength="42" autocomplete="name" />
+              </label>
+              <label>
+                <span>Handle</span>
+                <input id="handle" type="text" maxlength="32" autocomplete="username" />
+                <small class="handle-hint" id="handleHint"></small>
+              </label>
+              <label>
+                <span>Short Bio</span>
+                <textarea id="bio" rows="3" maxlength="150"></textarea>
+              </label>
+            </fieldset>
+
+            <fieldset>
+              <legend>Theme</legend>
+              <div class="theme-grid" id="themeGrid" role="radiogroup" aria-label="Choose a page theme">
+                <button type="button" class="theme-tile is-active" data-theme-option="storybook" role="radio" aria-checked="true">
+                  <span class="swatch storybook"></span>
+                  <span>Story<wbr />book</span>
+                </button>
+                <button type="button" class="theme-tile" data-theme-option="cyber" role="radio" aria-checked="false">
+                  <span class="swatch cyber"></span>
+                  <span>Cyber</span>
+                </button>
+                <button type="button" class="theme-tile" data-theme-option="nature" role="radio" aria-checked="false">
+                  <span class="swatch nature"></span>
+                  <span>Nature</span>
+                </button>
+                <button type="button" class="theme-tile" data-theme-option="minimal" role="radio" aria-checked="false">
+                  <span class="swatch minimal"></span>
+                  <span>Minimal</span>
+                </button>
+                <button type="button" class="theme-tile" data-theme-option="inkwash" role="radio" aria-checked="false">
+                  <span class="swatch inkwash"></span>
+                  <span>Ink<wbr />Wash</span>
+                </button>
+              </div>
+
+              <div class="segmented" role="group" aria-label="Preview density">
+                <button type="button" class="is-active" data-density="focused">Focused</button>
+                <button type="button" data-density="compact">Compact</button>
+              </div>
+            </fieldset>
+          </form>
+        </aside>
+
+        <section class="phone-stage" aria-label="Live page preview">
+          <button class="exit-view-button" id="exitView" type="button">Edit Page</button>
+          <div class="phone" id="publicPage">
+            <div class="ambient-layer" aria-hidden="true"></div>
+            <a class="page-brand" href="/" aria-label="ShareMusicWith — discover more pages">
+              <span class="page-brand-mark" aria-hidden="true"></span>
+              ShareMusicWith
+            </a>
+            <section class="profile-card glass-card deck">
+              <div class="deck-head">
+                <span class="deck-led" aria-hidden="true"></span>
+                <p class="handle" id="previewHandle">@dreamlistener</p>
+              </div>
+              <div class="deck-row">
+                <div class="deck-platter">
+                  <div class="avatar" id="avatar">D</div>
+                </div>
+                <div class="deck-display">
+                  <h2 id="previewName">Dream Listener</h2>
+                  <div class="bio-ticker" aria-label="bio">
+                    <p id="previewBio">A small public page for every playlist I want friends to hear.</p>
+                  </div>
+                </div>
+                <div class="deck-pets">
+                  <div class="companions" aria-hidden="true">
+                    <div class="pet pet-cat">
+                      <span class="pet-tail"></span>
+                      <span class="pet-body"></span>
+                      <span class="pet-head">
+                        <span class="pet-ear left"></span>
+                        <span class="pet-ear right"></span>
+                        <span class="pet-face"></span>
+                      </span>
+                    </div>
+                    <div class="pet pet-dog">
+                      <span class="pet-tail"></span>
+                      <span class="pet-body"></span>
+                      <span class="pet-head">
+                        <span class="pet-ear left"></span>
+                        <span class="pet-ear right"></span>
+                        <span class="pet-face"></span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="playlist-card glass-card">
+              <div class="section-heading">
+                <p>Playlist</p>
+                <h3 id="previewTitle">Weekend Rotation</h3>
+              </div>
+
+              <section class="playlist-inline-player" id="playlistInlinePlayer" aria-label="Playlist player" hidden>
+                <div class="inline-player-header">
+                  <div>
+                    <p class="platform-pill" id="inlinePlayerPlatform">Spotify</p>
+                    <h4 id="inlinePlayerTitle">Playlist</h4>
+                  </div>
+                  <button class="inline-player-close" id="closeInlinePlayer" type="button" aria-label="Close player" title="Close player">×</button>
+                </div>
+                <div class="inline-player-frame" id="inlinePlayerFrame"></div>
+              </section>
+
+              <div class="embed-stack" id="embedStack"></div>
+            </section>
+
+            <section class="theme-note glass-card">
+              <span class="note-line"></span>
+              <p id="themeNote">Soft painted color, calm spacing, and a page that feels personal without becoming heavy.</p>
+            </section>
+
+            <section class="visitor-cta glass-card" aria-label="Create your own page">
+              <p class="visitor-cta-eyebrow">ShareMusicWith</p>
+              <a class="visitor-cta-button" href="/create">Create your own page →</a>
+              <p class="visitor-cta-text">Like this page? Build your own playlist page in minutes — it's free.</p>
+            </section>
+          </div>
+
+          <section class="playlist-webview glass-card" id="playlistWebview" aria-label="Inline playlist player" hidden>
+            <div class="webview-header">
+              <div>
+                <p class="platform-pill" id="webviewPlatform">Spotify</p>
+                <h2 id="webviewTitle">Playlist</h2>
+              </div>
+              <button class="webview-close" id="closeWebview" type="button" aria-label="Close player" title="Close player">×</button>
+            </div>
+            <div class="webview-frame" id="webviewFrame"></div>
+          </section>
+        </section>
+
+        <aside class="panel data-panel" aria-label="Playlist and sharing controls">
+          <div class="panel-heading">
+            <p class="eyebrow">Publishing</p>
+            <h2>Playlist &amp; Share</h2>
+          </div>
+          <div class="control-stack">
+            <fieldset>
+              <legend>Playlist</legend>
+              <label>
+                <span>Section Heading</span>
+                <input id="pageTitle" type="text" maxlength="56" />
+              </label>
+              <label>
+                <span>Playlist Name</span>
+                <input id="playlistName" type="text" maxlength="56" placeholder="Late night drive" />
+              </label>
+              <div class="link-composer">
+                <label>
+                  <span>Public Playlist Link</span>
+                  <input
+                    id="playlistUrl"
+                    type="url"
+                    inputmode="url"
+                    placeholder="https://open.spotify.com/playlist/..."
+                  />
+                </label>
+                <button class="icon-button" type="button" id="addLink" aria-label="Add playlist link" title="Add link">
+                  +
+                </button>
+              </div>
+              <div class="playlist-list" id="playlistList" aria-live="polite"></div>
+              <button class="demo-button" id="addSpotifyPreview" type="button">Add Spotify Preview</button>
+            </fieldset>
+
+            <fieldset class="publish-panel">
+              <legend>Publish</legend>
+              <button class="secondary-button" id="publishButton" type="button">Publish page</button>
+              <p class="status-text" id="statusText">Pick a handle, then publish to get a shareable link.</p>
+              <p class="save-status" id="saveStatus"></p>
+            </fieldset>
+          </div>
+        </aside>
+      </section>
+
+      <section class="created-panel" id="createdPanel" aria-label="Page published">
+        <div class="created-card glass-card">
+          <p class="eyebrow">Your page is live</p>
+          <h2>Share it anywhere</h2>
+          <p class="created-warning">Save the edit link now — it is shown only once.</p>
+          <div class="created-field">
+            <span>Public URL</span>
+            <div class="created-url-row">
+              <code class="created-url-value" id="publicUrlValue"></code>
+              <button class="secondary-button" id="copyPublicUrl" type="button">Copy</button>
+            </div>
+          </div>
+          <div class="created-field">
+            <span>Edit URL (keep private)</span>
+            <div class="created-url-row">
+              <code class="created-url-value" id="editUrlValue"></code>
+              <button class="secondary-button" id="copyEditUrl" type="button">Copy</button>
+            </div>
+          </div>
+          <button class="demo-button" id="createAnother" type="button">Create another page</button>
+        </div>
+      </section>
+
+      <section class="discover-home" id="discoverHome" aria-label="Discover playlists">
+        <aside class="discover-sidebar">
+          <a class="sidebar-brand" href="/" aria-label="ShareMusicWith — home">
+            <span class="sidebar-brand-mark" aria-hidden="true"></span>
+            <span class="sidebar-brand-name">ShareMusicWith</span>
+          </a>
+
+          <nav class="sidebar-nav" aria-label="Primary">
+            <a class="sidebar-link is-active" href="/" aria-current="page">Discover</a>
+          </nav>
+
+          <p class="sidebar-group-label">Browse</p>
+          <nav class="sidebar-sections" aria-label="Browse sections">
+            <a class="sidebar-section" href="#secTrending"><span class="sec-dot sec-dot-1" aria-hidden="true"></span>Trending</a>
+            <a class="sidebar-section" href="#secToday"><span class="sec-dot sec-dot-2" aria-hidden="true"></span>Today's Hits</a>
+            <a class="sidebar-section" href="#secPopular"><span class="sec-dot sec-dot-3" aria-hidden="true"></span>Popular</a>
+            <a class="sidebar-section" href="#secFresh"><span class="sec-dot sec-dot-4" aria-hidden="true"></span>Fresh</a>
+          </nav>
+
+          <div class="sidebar-spacer"></div>
+
+          <div class="sidebar-cta">
+            <p class="sidebar-cta-title">Share your sound</p>
+            <p class="sidebar-cta-text">Create your own playlist page and let people discover your taste.</p>
+            <button class="sidebar-create" id="discoverCreate" type="button">Start now</button>
+            <p class="sidebar-note">No account needed · free</p>
+          </div>
+        </aside>
+
+        <main class="discover-main">
+          <section class="discover-hero">
+            <div class="discover-hero-copy">
+              <h1 class="discover-hero-title">Discover music that <span class="hero-script">moves you.</span></h1>
+              <p class="discover-hero-sub">Real playlists from real people — find your next obsession.</p>
+              <div class="discover-hero-actions">
+                <button class="discover-hero-cta" id="discoverCreateHero" type="button">
+                  Create your playlist page <span class="cta-arrow" aria-hidden="true">↗</span>
+                </button>
+                <a class="discover-hero-ghost" href="#secTrending">
+                  <span class="ghost-play" aria-hidden="true"></span> Explore playlists
+                </a>
+              </div>
+              <p class="discover-hero-microcopy">Showcase your music taste in seconds · No account needed</p>
+            </div>
+            <div class="discover-hero-art" aria-hidden="true"></div>
+          </section>
+
+          <nav class="discover-chips" aria-label="Jump to section">
+            <a class="discover-chip" href="#secTrending">Trending</a>
+            <a class="discover-chip" href="#secToday">Today's Hits</a>
+            <a class="discover-chip" href="#secPopular">Popular</a>
+            <a class="discover-chip" href="#secFresh">Fresh Drops</a>
+          </nav>
+
+          <section class="discover-row" id="secTrending">
+            <div class="discover-row-head">
+              <h2><span class="row-ico" aria-hidden="true">⚡</span> Trending</h2>
+              <span class="row-sub">Playlists gaining momentum</span>
+            </div>
+            <div class="discover-grid discover-grid--featured" id="gridTrending"></div>
+          </section>
+
+          <section class="discover-row" id="secToday">
+            <div class="discover-row-head">
+              <h2><span class="row-ico" aria-hidden="true">☀️</span> Today's Hits</h2>
+              <span class="row-sub">Most played in the last 24 hours</span>
+            </div>
+            <div class="discover-grid" id="gridToday"></div>
+          </section>
+
+          <section class="discover-row" id="secPopular">
+            <div class="discover-row-head">
+              <h2><span class="row-ico" aria-hidden="true">❤️</span> Popular</h2>
+              <span class="row-sub">All-time community favorites</span>
+            </div>
+            <div class="discover-grid" id="gridPopular"></div>
+          </section>
+
+          <section class="discover-cta-band" aria-label="Create your playlist page">
+            <div class="discover-cta-band-copy">
+              <h2 class="discover-cta-band-title">Ready to share your sound?</h2>
+              <p class="discover-cta-band-text">Create a personal playlist page and let people discover what you're listening to.</p>
+            </div>
+            <button class="discover-cta-band-btn" id="discoverCreateBand" type="button">
+              Create your page <span class="cta-arrow" aria-hidden="true">↗</span>
+            </button>
+          </section>
+
+          <section class="discover-row" id="secFresh">
+            <div class="discover-row-head">
+              <h2><span class="row-ico" aria-hidden="true">🌱</span> Fresh Drops</h2>
+              <span class="row-sub">Newly created playlists</span>
+            </div>
+            <div class="discover-grid" id="gridNew"></div>
+          </section>
+        </main>
+      </section>
+
+      <div class="boot-screen" aria-hidden="true">
+        <span class="vinyl boot-vinyl">
+          <span class="vinyl-label"><span class="vinyl-hole"></span></span>
+        </span>
+      </div>
+    </main>
+
+    <template id="playlistItemTemplate">
+      <article class="playlist-item">
+        <div>
+          <strong></strong>
+          <span></span>
+        </div>
+        <button type="button" aria-label="Remove playlist link" title="Remove link">×</button>
+      </article>
+    </template>
+
+    <template id="embedTemplate">
+      <article class="music-block">
+        <div class="music-meta">
+          <span class="platform-pill"></span>
+          <a target="_blank" rel="noreferrer"></a>
+          <button class="webview-toggle" type="button"></button>
+        </div>
+        <div class="embed-target"></div>
+      </article>
+    </template>
+
+    <script>
+      // Resolve the layout mode from the URL before first paint. Without this the
+      // static shell (data-mode="create") would render the full builder UI for a
+      // second or two — until the large wasm bundle downloads and re-routes — so
+      // deep links like /@handle or /@handle/edit/<token> flashed the editor.
+      // The wasm app re-applies the same routing on boot and clears data-booting.
+      //
+      // /create is gated too: its static preview ships with sample content
+      // (@dreamlistener / Weekend Rotation / storybook theme), so without the gate
+      // that mockup flashes on every load/refresh before wasm swaps in the real
+      // draft from localStorage.
+      (function () {
+        var p = location.pathname.replace(/^\/+|\/+$/g, "");
+        var mode = "home";
+        if (p === "create") {
+          mode = "create";
+        } else if (p === "created") {
+          mode = "created";
+        } else if (p.charAt(0) === "@") {
+          var segs = p.split("/");
+          mode =
+            segs.length >= 3 && segs[1] === "edit"
+              ? "edit"
+              : segs.length === 1
+                ? "view"
+                : "home";
+        }
+        var shell = document.querySelector(".app-shell");
+        if (shell) {
+          shell.dataset.mode = mode;
+          // Gate every route behind the boot spinner so no static placeholder or
+          // sample content flashes before wasm renders the real state.
+          shell.dataset.booting = "1";
+        }
+      })();
+    </script>
+    <script src="/wasm_exec.js"></script>
+    <script>
+      const go = new Go();
+      const loadWasm = async () => {
+        const response = await fetch("/main.wasm");
+        const bytes = await response.arrayBuffer();
+        const result = await WebAssembly.instantiate(bytes, go.importObject);
+        await go.run(result.instance);
+      };
+
+      loadWasm().catch((error) => {
+        console.error(error);
+        document.body.innerHTML = "<main class=\"wasm-error\">Go WASM failed to load. Run the build script and serve this directory over HTTP.</main>";
+      });
+    </script>
+  </body>
+</html>

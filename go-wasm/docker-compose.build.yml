@@ -1,0 +1,12 @@
+# Local source-build override. The base docker-compose.yml pulls the app image
+# from the registry (the staging/prod path). Layer this file to build the image
+# from local source instead — useful for local testing without CI:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+#
+# Needs ~2 GB+ RAM (the WASM client is compiled in-image); add swap on small VMs.
+services:
+  app:
+    build: .
+    # Build the image locally instead of pulling it.
+    pull_policy: build

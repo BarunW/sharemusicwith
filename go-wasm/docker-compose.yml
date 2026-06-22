@@ -1,0 +1,77 @@
+services:
+  # Optional all-in-one TLS proxy. Staging/prod use host nginx + certbot instead
+  # (see deploy/nginx/staging.conf + DEPLOY.md), so Caddy is gated behind a
+  # profile: a bare `docker compose up -d` starts only app + db. Bring Caddy up
+  # explicitly with `docker compose --profile caddy up -d` for a zero-config,
+  # auto-HTTPS, single-host deploy.
+  caddy:
+    image: caddy:2
+    profiles: ["caddy"]
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      DOMAIN: "${DOMAIN}"
+    depends_on:
+      - app
+    networks:
+      - web
+
+  app:
+    # Pulled from the registry (built + pushed by CI — see .github/workflows).
+    # Set APP_IMAGE in .env to the GHCR ref, e.g. ghcr.io/owner/repo:staging.
+    # For a local source build instead, layer docker-compose.build.yml (which
+    # re-adds `build: .`): docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+    image: ${APP_IMAGE:-sharemusicwith-app:local}
+    pull_policy: always
+    restart: unless-stopped
+    # Loopback-only publish: host nginx reaches the app at 127.0.0.1:8081, but
+    # the port is never exposed on the VM's public interface (TLS-bypass guard).
+    ports:
+      - "127.0.0.1:8081:8081"
+    environment:
+      DATABASE_URL: "postgres://postgres:${POSTGRES_PASSWORD}@db:5432/playlists?sslmode=disable"
+      METRICS_SALT: "${METRICS_SALT}"
+      # Requests arrive via a reverse proxy (host nginx, or Caddy on the `web`
+      # network). With host nginx, Docker SNATs the published port so the peer is
+      # the bridge gateway (a 172.x addr); with Caddy it's the container IP. Both
+      # fall in these RFC1918 ranges, so the app trusts them and reads the real
+      # client IP from X-Forwarded-For for rate-limiting + metric dedup. Real
+      # clients arrive on public IPs, so trusting all private ranges is safe.
+      TRUSTED_PROXIES: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+      ADDR: "0.0.0.0:8081"
+      STATIC_DIR: "/app"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - web
+
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: playlists
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d playlists"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    networks:
+      - web
+
+volumes:
+  caddy_data: {}
+  caddy_config: {}
+  pgdata: {}
+
+networks:
+  web: {}
