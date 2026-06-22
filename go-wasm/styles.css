@@ -1910,7 +1910,7 @@ textarea:focus-visible,
   min-height: clamp(200px, 22vw, 300px);
   margin: calc(-1 * clamp(20px, 3vw, 40px)) calc(-1 * clamp(20px, 3vw, 40px)) 0 0;
   border-bottom-left-radius: 32px;
-  background: url("assets/hero-portal.png") center right / cover no-repeat, #0b0a14;
+  background: url("https://cdn.jsdelivr.net/gh/BarunW/sharemusicwith@main/go-wasm/assets/hero-portal.webp") center right / cover no-repeat, #0b0a14;
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 24%);
   mask-image: linear-gradient(90deg, transparent, #000 24%);
 }
@@ -2513,7 +2513,7 @@ textarea:focus-visible,
   --pet-cat: #ffd47c;
   --pet-dog: #b77855;
   --pet-marking: #fff0bf;
-  --theme-image: url("assets/theme-storybook.png");
+  --theme-image: url("https://cdn.jsdelivr.net/gh/BarunW/sharemusicwith@main/go-wasm/assets/theme-storybook.webp");
 }
 
 [data-theme="cyber"] {
@@ -2527,7 +2527,7 @@ textarea:focus-visible,
   --pet-cat: #00d7ff;
   --pet-dog: #ff3c92;
   --pet-marking: #ecfbff;
-  --theme-image: url("assets/theme-cyber.png");
+  --theme-image: url("https://cdn.jsdelivr.net/gh/BarunW/sharemusicwith@main/go-wasm/assets/theme-cyber.webp");
 }
 
 [data-theme="nature"] {
@@ -2541,7 +2541,7 @@ textarea:focus-visible,
   --pet-cat: #d9b164;
   --pet-dog: #8a6540;
   --pet-marking: #f7ffe9;
-  --theme-image: url("assets/theme-nature.png");
+  --theme-image: url("https://cdn.jsdelivr.net/gh/BarunW/sharemusicwith@main/go-wasm/assets/theme-nature.webp");
 }
 
 [data-theme="minimal"] {
@@ -2633,8 +2633,8 @@ textarea:focus-visible,
   z-index: 3;
   pointer-events: none;
   background-image:
-    url("assets/flora-branch-a.png"),
-    url("assets/flora-branch-b.png");
+    url("https://cdn.jsdelivr.net/gh/BarunW/sharemusicwith@main/go-wasm/assets/flora-branch-a.webp"),
+    url("https://cdn.jsdelivr.net/gh/BarunW/sharemusicwith@main/go-wasm/assets/flora-branch-b.webp");
   background-repeat: no-repeat, no-repeat;
   background-position: right -10px top -16px, left -10px bottom -10px;
   background-size: 240px auto, 182px auto;
@@ -3440,4 +3440,34 @@ textarea:focus-visible,
   border-top: 1px solid var(--d-border, rgba(255, 255, 255, 0.08));
   font-size: 0.82rem;
   font-style: italic;
+}
+
+/* ---- WASM load-failure fallback (shown if the client can't start) ------- */
+.wasm-error {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  max-width: 30rem;
+  margin: 0 auto;
+  min-height: 100dvh;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  color: var(--text, #f7f3ea);
+  text-align: center;
+  font-family: var(--font-mono, ui-monospace, monospace);
+}
+.wasm-error h1 {
+  font-size: 1.25rem;
+  margin: 0;
+}
+.wasm-error p {
+  margin: 0;
+  color: var(--muted, rgba(247, 243, 234, 0.68));
+  line-height: 1.55;
+  font-size: 0.95rem;
+}
+.wasm-error .wasm-error-detail {
+  font-size: 0.75rem;
+  opacity: 0.6;
+  word-break: break-word;
 }

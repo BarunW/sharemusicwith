@@ -12,6 +12,7 @@
     <link rel="dns-prefetch" href="https://i.ytimg.com" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=Gaegu:wght@400;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Kaushan+Script&family=Patrick+Hand&family=Press+Start+2P&family=Yomogi&display=swap"
@@ -428,17 +429,61 @@
     <script src="/wasm_exec.js"></script>
     <script>
       const go = new Go();
-      const loadWasm = async () => {
-        const response = await fetch("/main.wasm");
-        const bytes = await response.arrayBuffer();
-        const result = await WebAssembly.instantiate(bytes, go.importObject);
-        await go.run(result.instance);
-      };
 
-      loadWasm().catch((error) => {
-        console.error(error);
-        document.body.innerHTML = "<main class=\"wasm-error\">Go WASM failed to load. Run the build script and serve this directory over HTTP.</main>";
-      });
+      function showWasmError(detail) {
+        document.body.innerHTML =
+          '<main class="wasm-error">' +
+          "<h1>Couldn’t load the player</h1>" +
+          "<p>This can happen in in-app browsers (Instagram, TikTok…) or on a weak " +
+          "connection. Reload, or open this page in your browser (Chrome / Safari) " +
+          "from the menu.</p>" +
+          (detail ? '<p class="wasm-error-detail">' + detail + "</p>" : "") +
+          "</main>";
+      }
+
+      async function instantiateWasm() {
+        // Streaming is faster and lighter on memory; some in-app browsers reject it
+        // (MIME/stream quirks), so fall back to the buffered form.
+        if (typeof WebAssembly.instantiateStreaming === "function") {
+          try {
+            return await WebAssembly.instantiateStreaming(fetch("/main.wasm"), go.importObject);
+          } catch (e) {
+            console.warn("instantiateStreaming failed, falling back to buffer:", e);
+          }
+        }
+        const resp = await fetch("/main.wasm");
+        if (!resp.ok) throw new Error("fetch /main.wasm -> HTTP " + resp.status);
+        const bytes = await resp.arrayBuffer();
+        return await WebAssembly.instantiate(bytes, go.importObject);
+      }
+
+      (async () => {
+        if (typeof WebAssembly === "undefined") {
+          showWasmError("WebAssembly is unavailable in this browser.");
+          return;
+        }
+        // Retry fetch/instantiate — flaky/roaming connections can deliver a
+        // truncated body, which fails instantiation on the first try.
+        let result, lastErr;
+        for (let attempt = 1; attempt <= 3 && !result; attempt++) {
+          try {
+            result = await instantiateWasm();
+          } catch (e) {
+            lastErr = e;
+            console.error("wasm load attempt " + attempt + " failed:", e);
+          }
+        }
+        if (!result) {
+          showWasmError(String((lastErr && (lastErr.message || lastErr)) || "unknown error"));
+          return;
+        }
+        try {
+          await go.run(result.instance);
+        } catch (e) {
+          console.error("wasm run failed:", e);
+          showWasmError(String((e && (e.message || e)) || "runtime error"));
+        }
+      })();
     </script>
   </body>
 </html>

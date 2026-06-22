@@ -26,9 +26,10 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o server ./cmd/server
 FROM gcr.io/distroless/static-debian12:nonroot
 WORKDIR /app
 COPY --from=build /src/server /app/server
+# Background/theme images are served from a CDN (jsDelivr) — see styles.css — so
+# they're intentionally NOT baked into the image.
 COPY --from=build /src/index.html /src/privacy.html /src/styles.css /app/
 COPY --from=wasm  /src/main.wasm /src/wasm_exec.js /app/
-COPY --from=build /src/assets /app/assets
 ENV ADDR=0.0.0.0:8081 STATIC_DIR=/app
 EXPOSE 8081
 USER nonroot:nonroot
