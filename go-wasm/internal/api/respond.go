@@ -26,10 +26,20 @@ func writeError(w http.ResponseWriter, status int, code, msg string) {
 	writeJSON(w, status, errorResponse{Error: code, Message: msg})
 }
 
-func setNoCache(w http.ResponseWriter) {
-	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
-	w.Header().Set("Pragma", "no-cache")
-	w.Header().Set("Expires", "0")
+// setRevalidateCache lets browsers and the CDN store the response but check with
+// the origin on every use (cheap 304s via Last-Modified). Used for the HTML
+// shell and assets whose URL is stable across deploys (styles.css, wasm_exec.js)
+// so a fresh deploy is always picked up.
+func setRevalidateCache(w http.ResponseWriter) {
+	w.Header().Set("Cache-Control", "no-cache")
+}
+
+// setImmutableCache marks content-hashed assets (e.g. main.<hash>.wasm) as
+// cacheable for a year and never revalidated — the filename changes whenever the
+// bytes do, so the CDN can edge-cache them and browsers never re-download an
+// unchanged build.
+func setImmutableCache(w http.ResponseWriter) {
+	w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 }
 
 // setPublicCache marks a response cacheable by browsers/CDN for maxAge seconds,

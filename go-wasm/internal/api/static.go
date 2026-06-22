@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -16,10 +17,15 @@ var assetExts = map[string]bool{
 	".gif": true, ".webp": true, ".ico": true, ".json": true,
 }
 
+// fingerprinted matches assets whose filename embeds a content hash
+// (e.g. main.1a2b3c4d5e6f.wasm) — the bytes can't change without the URL
+// changing, so they're safe to cache forever. The Docker build hashes main.wasm
+// and rewrites index.html to match; local dev keeps the plain name (revalidated).
+var fingerprinted = regexp.MustCompile(`\.[0-9a-f]{8,}\.(wasm|js|css)$`)
+
 // serveStaticOrIndex serves real files from staticDir and falls back to the SPA
 // shell (index.html) for client routes ("/", "/created", "/@handle...").
 func (s *Server) serveStaticOrIndex(w http.ResponseWriter, r *http.Request) {
-	setNoCache(w)
 	upath := r.URL.Path
 
 	if upath == "/" || upath == "/created" || strings.HasPrefix(upath, "/@") {
@@ -31,6 +37,7 @@ func (s *Server) serveStaticOrIndex(w http.ResponseWriter, r *http.Request) {
 	// footer links here. Kept out of the SPA so it loads instantly without the
 	// wasm bundle.
 	if upath == "/privacy" {
+		setRevalidateCache(w)
 		http.ServeFile(w, r, filepath.Join(s.staticDirAbs, "privacy.html"))
 		return
 	}
@@ -43,6 +50,14 @@ func (s *Server) serveStaticOrIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if info, err := os.Stat(full); err == nil && !info.IsDir() {
+		// Content-hashed assets (main.<hash>.wasm) never change under a given
+		// URL, so cache them forever; everything else must revalidate so a new
+		// deploy is picked up.
+		if fingerprinted.MatchString(clean) {
+			setImmutableCache(w)
+		} else {
+			setRevalidateCache(w)
+		}
 		http.ServeFile(w, r, full)
 		return
 	}
@@ -54,5 +69,9 @@ func (s *Server) serveStaticOrIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) serveIndex(w http.ResponseWriter, r *http.Request) {
+	// The shell references the content-hashed wasm by URL, so it must always be
+	// revalidated — otherwise a returning visitor could load an old shell that
+	// points at a wasm file the new deploy no longer has.
+	setRevalidateCache(w)
 	http.ServeFile(w, r, filepath.Join(s.staticDirAbs, "index.html"))
 }
