@@ -1,15 +1,16 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
-	"net/http"
+	"errors"
 	"net/url"
+	"syscall/js"
 )
 
-// Under GOOS=js/GOARCH=wasm, net/http transparently uses the browser Fetch API,
-// so we reuse the same State structs + json tags with no js.Value plumbing.
-// Every call below blocks its goroutine, so callers run them inside `go func`.
+// The browser provides no Go net/http transport under TinyGo (and it's heavy
+// under standard Go too), so every server call goes through the Fetch API
+// directly via syscall/js. We keep the same State structs + json tags and just
+// marshal/unmarshal the request/response bodies ourselves.
 
 type publishResult struct {
 	Handle    string `json:"handle"`
@@ -27,21 +28,89 @@ func (a *App) apiURL(path string) string {
 	return a.window.Get("location").Get("origin").String() + path
 }
 
+// doFetch performs a blocking Fetch from a goroutine and returns the HTTP status
+// and raw response body. It blocks the calling goroutine on a channel until the
+// request settles; every caller already runs inside `go func`, so the JS event
+// loop stays free to drive the fetch/text promise callbacks that unblock it.
+func (a *App) doFetch(method, url, body, contentType string) (status int, respBody string, err error) {
+	type result struct {
+		status int
+		body   string
+		err    error
+	}
+	ch := make(chan result, 1)
+
+	opts := map[string]any{"method": method}
+	if body != "" {
+		opts["body"] = body
+	}
+	if contentType != "" {
+		opts["headers"] = map[string]any{"Content-Type": contentType}
+	}
+
+	var onResp, onText, onErr js.Func
+	cleanup := func() {
+		onResp.Release()
+		onText.Release()
+		onErr.Release()
+	}
+
+	settled := false
+	send := func(r result) {
+		if settled {
+			return
+		}
+		settled = true
+		ch <- r
+	}
+
+	onErr = js.FuncOf(func(_ js.Value, args []js.Value) any {
+		msg := "network request failed"
+		if len(args) > 0 && args[0].Truthy() {
+			msg = args[0].Call("toString").String()
+		}
+		send(result{err: errors.New(msg)})
+		return nil
+	})
+
+	var statusCode int
+	onText = js.FuncOf(func(_ js.Value, args []js.Value) any {
+		text := ""
+		if len(args) > 0 {
+			text = args[0].String()
+		}
+		send(result{status: statusCode, body: text})
+		return nil
+	})
+
+	onResp = js.FuncOf(func(_ js.Value, args []js.Value) any {
+		resp := args[0]
+		statusCode = resp.Get("status").Int()
+		resp.Call("text").Call("then", onText).Call("catch", onErr)
+		return nil
+	})
+
+	a.window.Call("fetch", url, opts).Call("then", onResp).Call("catch", onErr)
+
+	r := <-ch
+	cleanup()
+	return r.status, r.body, r.err
+}
+
 // apiGetState fetches a {handle, state} envelope. Returns (state, httpStatus, error).
 func (a *App) apiGetState(path string) (State, int, error) {
-	resp, err := http.Get(a.apiURL(path))
+	status, body, err := a.doFetch("GET", a.apiURL(path), "", "")
 	if err != nil {
 		return State{}, 0, err
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return State{}, resp.StatusCode, nil
+	if status != 200 {
+		return State{}, status, nil
 	}
 	var env stateEnvelope
-	if err := json.NewDecoder(resp.Body).Decode(&env); err != nil {
-		return State{}, resp.StatusCode, err
+	if err := json.Unmarshal([]byte(body), &env); err != nil {
+		return State{}, status, err
 	}
-	return env.State, resp.StatusCode, nil
+	return env.State, status, nil
 }
 
 func (a *App) apiPostPublish(st State, handle string) (publishResult, int, error) {
@@ -49,19 +118,18 @@ func (a *App) apiPostPublish(st State, handle string) (publishResult, int, error
 	if err != nil {
 		return publishResult{}, 0, err
 	}
-	resp, err := http.Post(a.apiURL("/api/playlists"), "application/json", bytes.NewReader(body))
+	status, respBody, err := a.doFetch("POST", a.apiURL("/api/playlists"), string(body), "application/json")
 	if err != nil {
 		return publishResult{}, 0, err
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		return publishResult{}, resp.StatusCode, nil
+	if status != 200 && status != 201 {
+		return publishResult{}, status, nil
 	}
 	var res publishResult
-	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
-		return publishResult{}, resp.StatusCode, err
+	if err := json.Unmarshal([]byte(respBody), &res); err != nil {
+		return publishResult{}, status, err
 	}
-	return res, resp.StatusCode, nil
+	return res, status, nil
 }
 
 func (a *App) apiPutState(path string, st State) (int, error) {
@@ -69,29 +137,22 @@ func (a *App) apiPutState(path string, st State) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	req, err := http.NewRequest(http.MethodPut, a.apiURL(path), bytes.NewReader(body))
+	status, _, err := a.doFetch("PUT", a.apiURL(path), string(body), "application/json")
 	if err != nil {
 		return 0, err
 	}
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return 0, err
-	}
-	resp.Body.Close()
-	return resp.StatusCode, nil
+	return status, nil
 }
 
 func (a *App) apiHandleAvailable(handle string) (bool, error) {
-	resp, err := http.Get(a.apiURL("/api/handles/" + url.PathEscape(handle) + "/available"))
+	_, body, err := a.doFetch("GET", a.apiURL("/api/handles/"+url.PathEscape(handle)+"/available"), "", "")
 	if err != nil {
 		return false, err
 	}
-	defer resp.Body.Close()
 	var r struct {
 		Available bool `json:"available"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&r); err != nil {
+	if err := json.Unmarshal([]byte(body), &r); err != nil {
 		return false, err
 	}
 	return r.Available, nil
@@ -112,15 +173,17 @@ type discoverItem struct {
 
 // apiGetDiscover fetches one ranked section of the discovery feed.
 func (a *App) apiGetDiscover(section string) ([]discoverItem, error) {
-	resp, err := http.Get(a.apiURL("/api/discover?section=" + url.QueryEscape(section)))
+	status, body, err := a.doFetch("GET", a.apiURL("/api/discover?section="+url.QueryEscape(section)), "", "")
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	if status != 200 {
+		return nil, errors.New("discover request failed")
+	}
 	var out struct {
 		Items []discoverItem `json:"items"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+	if err := json.Unmarshal([]byte(body), &out); err != nil {
 		return nil, err
 	}
 	return out.Items, nil
@@ -137,9 +200,5 @@ func (a *App) apiPostEvent(handle, eventType, linkID, platform string) {
 	if err != nil {
 		return
 	}
-	resp, err := http.Post(a.apiURL("/api/events"), "application/json", bytes.NewReader(body))
-	if err != nil {
-		return
-	}
-	resp.Body.Close()
+	a.doFetch("POST", a.apiURL("/api/events"), string(body), "application/json")
 }
