@@ -1,6 +1,9 @@
 # Build artifacts — regenerate with ./build.sh / go build
 main.wasm
-server
+# Anchored so it only ignores the top-level `server` binary, NOT the
+# cmd/server/ source dir (a bare `server` pattern matched both, which silently
+# dropped cmd/server from the repo and broke the Docker build).
+/server
 cwp-server-bin
 
 # Local Go build cache (serve.sh/build.sh default to /tmp, but ignore if set here)
