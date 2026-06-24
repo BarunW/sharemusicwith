@@ -660,19 +660,21 @@ func (a *App) updateEmbedBlock(block js.Value, link Link) {
 
 func (a *App) renderEmbedTarget(target js.Value, link Link) {
 	signature := getEmbedRenderSignature(link)
-	// Only ONE playlist may play at a time. Inline embeds used to each mount a
-	// live iframe, so several playlists could play at once (and a cross-origin
-	// iframe can't be paused from JS). Instead, inline embeds are "play" posters;
-	// the actual audio plays in the single shared player, which shows one playlist
-	// at a time. The active link's poster flips to a "stop" state.
-	if signature.Kind == "embed" {
-		if a.isViewOnly && link.ID == a.activeWebviewLinkID {
-			signature = embedRenderSignature{Kind: "poster-on", Source: link.EmbedURL}
-		} else {
-			signature = embedRenderSignature{Kind: "poster", Source: link.EmbedURL}
-		}
+	// When this playlist is open in the dedicated player, unmount its inline
+	// embed iframe so only ONE copy plays — otherwise the small preview keeps
+	// playing alongside the opened player. Folding it into the render signature
+	// makes the iframe remount when the player closes. Only "embed" kinds have an
+	// audio-playing iframe inline (YouTube renders a silent card), so leave those.
+	if signature.Kind == "embed" && a.isViewOnly && link.ID == a.activeWebviewLinkID {
+		signature = embedRenderSignature{Kind: "paused", Source: link.EmbedURL}
 	}
 	if datasetString(target, "renderKind") == signature.Kind && datasetString(target, "renderSource") == signature.Source {
+		if signature.Kind == "embed" {
+			iframe := target.Call("querySelector", "iframe")
+			if !isNil(iframe) {
+				iframe.Set("title", link.Platform+" playlist embed")
+			}
+		}
 		return
 	}
 
@@ -682,44 +684,27 @@ func (a *App) renderEmbedTarget(target js.Value, link Link) {
 	switch signature.Kind {
 	case "youtube":
 		target.Call("replaceChildren", a.createYoutubeCard(link))
-	case "poster":
-		target.Call("replaceChildren", a.createPlayPoster(link, false))
-	case "poster-on":
-		target.Call("replaceChildren", a.createPlayPoster(link, true))
+	case "embed":
+		a.mountIframe(target, a.createEmbedIframe(link, link.Platform+" playlist embed"))
+	case "paused":
+		target.Call("replaceChildren", a.createPlayingPlaceholder())
 	default:
 		target.Call("replaceChildren", a.createFallbackLink(link))
 	}
 }
 
-// createPlayPoster builds the inline "play" control that replaces the old live
-// inline iframe. Tapping it opens (or, when already on, closes) the single shared
-// player for this link — so only one playlist's audio ever plays.
-func (a *App) createPlayPoster(link Link, on bool) js.Value {
-	btn := a.el("button")
-	btn.Set("type", "button")
-	btn.Get("classList").Call("add", "embed-poster")
-	toggleClass(btn, "is-on", on)
-	btn.Get("dataset").Set("linkId", link.ID)
-
-	icon := a.el("span")
-	icon.Get("classList").Call("add", "embed-poster-icon")
-	icon.Call("setAttribute", "aria-hidden", "true")
-
-	label := a.el("span")
-	label.Get("classList").Call("add", "embed-poster-label")
-
-	if on {
-		setText(icon, "■")
-		setText(label, "Playing — tap to stop")
-		btn.Call("setAttribute", "aria-label", "Stop "+getPlaylistName(link))
-	} else {
-		setText(icon, "▶")
-		setText(label, "Play "+link.Platform)
-		btn.Call("setAttribute", "aria-label", "Play "+getPlaylistName(link))
-	}
-
-	btn.Call("append", icon, label)
-	return btn
+// createPlayingPlaceholder fills the inline embed slot while the same playlist is
+// open in the dedicated player, so the inline iframe is gone (and silent) and the
+// user knows where the audio is coming from.
+func (a *App) createPlayingPlaceholder() js.Value {
+	card := a.el("div")
+	card.Get("classList").Call("add", "embed-paused")
+	strong := a.el("strong")
+	setText(strong, "Playing in the player")
+	span := a.el("span")
+	setText(span, "Close the player to show this preview again.")
+	card.Call("append", strong, span)
+	return card
 }
 
 func getEmbedRenderSignature(link Link) embedRenderSignature {
@@ -764,8 +749,7 @@ func (a *App) renderWebviewToggle(button js.Value, link Link) {
 }
 
 func (a *App) handleWebviewToggle(event js.Value) {
-	// Both the inline play poster and the header toggle open/close the shared player.
-	button := closest(event.Get("target"), ".webview-toggle, .embed-poster")
+	button := closest(event.Get("target"), ".webview-toggle")
 	if isNil(button) {
 		return
 	}

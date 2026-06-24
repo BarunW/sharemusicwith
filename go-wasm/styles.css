@@ -24,7 +24,7 @@
   --pet-marking: #fff3d5;
   --shadow: 0 22px 70px rgba(0, 0, 0, 0.36);
   --shadow-tight: 0 12px 34px rgba(0, 0, 0, 0.24);
-  --spotify-player-height: 9.5rem;
+  --spotify-player-height: 400px;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo,
     "Liberation Mono", monospace;
 }
@@ -1143,55 +1143,23 @@ textarea:focus-visible,
   border-top: 1px solid color-mix(in srgb, var(--line) 74%, transparent);
 }
 
-/* Inline "play" poster — replaces the old live inline iframe so only the shared
-   player produces audio (one playlist at a time). */
-.embed-poster {
-  width: 100%;
-  min-height: 128px;
+.embed-paused {
+  min-height: 120px;
   display: grid;
-  grid-auto-flow: row;
-  place-items: center;
-  gap: 12px;
-  padding: 24px 18px;
-  border: 0;
-  border-top: 1px solid color-mix(in srgb, var(--line) 74%, transparent);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.18));
+  align-content: center;
+  justify-items: center;
+  gap: 5px;
+  padding: 18px;
+  text-align: center;
+  color: var(--muted);
+}
+.embed-paused strong {
   color: var(--text);
-  cursor: pointer;
-  transition:
-    background 160ms ease,
-    transform 160ms ease;
-}
-
-.embed-poster:hover {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0.12));
-}
-
-.embed-poster-icon {
-  display: grid;
-  place-items: center;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: #0b0b10;
-  font-size: 1.15rem;
-  line-height: 1;
-  padding-left: 3px; /* optically center the ▶ glyph */
-  box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 38%, transparent);
-}
-
-.embed-poster.is-on .embed-poster-icon {
-  background: color-mix(in srgb, var(--accent) 26%, #000);
-  color: var(--accent);
-  padding-left: 0;
-  box-shadow: none;
-}
-
-.embed-poster-label {
   font-weight: 800;
-  font-size: 0.9rem;
-  letter-spacing: 0.01em;
+}
+.embed-paused span {
+  font-size: 0.82rem;
+  line-height: 1.4;
 }
 
 .embed-target .fallback-link {
