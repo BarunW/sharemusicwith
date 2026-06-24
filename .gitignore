@@ -6,3 +6,6 @@ out
 .env.*.local
 npm-debug.log*
 tsconfig.tsbuildinfo
+
+# Local bug-report screenshots (debug artifacts, not project files)
+bug/
