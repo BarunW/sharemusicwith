@@ -43,7 +43,7 @@
               <h1>Build a shareable music page</h1>
             </div>
           </div>
-          <button class="view-button" id="viewOnly" type="button">View Page</button>
+          <button class="view-button" id="viewOnly" type="button">Preview Page</button>
 
           <form class="control-stack" id="pageForm">
             <fieldset>
@@ -206,7 +206,7 @@
               </label>
               <div class="link-composer">
                 <label>
-                  <span>Public Playlist Link</span>
+                  <span>Add your public playlist link</span>
                   <input
                     id="playlistUrl"
                     type="url"
@@ -218,13 +218,13 @@
                   +
                 </button>
               </div>
+              <p class="composer-hint">Paste a Spotify, YouTube, Apple Music, or SoundCloud link, then tap + to add it.</p>
               <div class="playlist-list" id="playlistList" aria-live="polite"></div>
-              <button class="demo-button" id="addSpotifyPreview" type="button">Add Spotify Preview</button>
             </fieldset>
 
             <fieldset class="publish-panel">
               <legend>Publish</legend>
-              <button class="secondary-button" id="publishButton" type="button">Publish page</button>
+              <button class="secondary-button publish-button" id="publishButton" type="button">Publish my page →</button>
               <p class="status-text" id="statusText">Pick a handle, then publish to get a shareable link.</p>
               <p class="save-status" id="saveStatus"></p>
             </fieldset>

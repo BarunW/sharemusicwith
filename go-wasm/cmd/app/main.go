@@ -46,7 +46,6 @@ type Elements struct {
 	PlaylistName     js.Value
 	PlaylistURL      js.Value
 	AddLink          js.Value
-	AddSpotify       js.Value
 	ViewOnly         js.Value
 	ExitView         js.Value
 	PlaylistList     js.Value
@@ -141,7 +140,6 @@ func newApp() *App {
 		PlaylistName:     document.Call("querySelector", "#playlistName"),
 		PlaylistURL:      document.Call("querySelector", "#playlistUrl"),
 		AddLink:          document.Call("querySelector", "#addLink"),
-		AddSpotify:       document.Call("querySelector", "#addSpotifyPreview"),
 		ViewOnly:         document.Call("querySelector", "#viewOnly"),
 		ExitView:         document.Call("querySelector", "#exitView"),
 		PlaylistList:     document.Call("querySelector", "#playlistList"),
@@ -199,10 +197,6 @@ func (a *App) bindEvents() {
 
 	a.on(a.elements.AddLink, "click", func(js.Value) {
 		a.addPlaylistFromInput()
-	})
-
-	a.on(a.elements.AddSpotify, "click", func(js.Value) {
-		a.addSpotifyPreview()
 	})
 
 	a.on(a.elements.EmbedStack, "click", func(event js.Value) {
@@ -622,8 +616,12 @@ func (a *App) createEmbedBlock(link Link) js.Value {
 	meta := a.el("div")
 	meta.Get("classList").Call("add", "music-meta")
 
-	pill := a.el("span")
+	// The platform pill is a link to the original playlist on its service
+	// (Spotify, YouTube, …) so tapping it in the public view opens the source.
+	pill := a.el("a")
 	pill.Get("classList").Call("add", "platform-pill")
+	pill.Set("target", "_blank")
+	pill.Set("rel", "noreferrer")
 
 	anchor := a.el("a")
 	anchor.Set("target", "_blank")
@@ -647,6 +645,7 @@ func (a *App) updateEmbedBlock(block js.Value, link Link) {
 
 	pill := block.Call("querySelector", ".platform-pill")
 	setText(pill, link.Platform)
+	pill.Set("href", link.URL)
 
 	anchor := block.Call("querySelector", ".music-meta a")
 	anchor.Set("href", link.URL)
@@ -661,6 +660,14 @@ func (a *App) updateEmbedBlock(block js.Value, link Link) {
 
 func (a *App) renderEmbedTarget(target js.Value, link Link) {
 	signature := getEmbedRenderSignature(link)
+	// When this playlist is open in the dedicated player, unmount its inline
+	// embed iframe so only ONE copy plays — otherwise the small preview keeps
+	// playing alongside the opened player. Folding it into the render signature
+	// makes the iframe remount when the player closes. Only "embed" kinds have an
+	// audio-playing iframe inline (YouTube renders a silent card), so leave those.
+	if signature.Kind == "embed" && a.isViewOnly && link.ID == a.activeWebviewLinkID {
+		signature = embedRenderSignature{Kind: "paused", Source: link.EmbedURL}
+	}
 	if datasetString(target, "renderKind") == signature.Kind && datasetString(target, "renderSource") == signature.Source {
 		if signature.Kind == "embed" {
 			iframe := target.Call("querySelector", "iframe")
@@ -679,9 +686,25 @@ func (a *App) renderEmbedTarget(target js.Value, link Link) {
 		target.Call("replaceChildren", a.createYoutubeCard(link))
 	case "embed":
 		a.mountIframe(target, a.createEmbedIframe(link, link.Platform+" playlist embed"))
+	case "paused":
+		target.Call("replaceChildren", a.createPlayingPlaceholder())
 	default:
 		target.Call("replaceChildren", a.createFallbackLink(link))
 	}
+}
+
+// createPlayingPlaceholder fills the inline embed slot while the same playlist is
+// open in the dedicated player, so the inline iframe is gone (and silent) and the
+// user knows where the audio is coming from.
+func (a *App) createPlayingPlaceholder() js.Value {
+	card := a.el("div")
+	card.Get("classList").Call("add", "embed-paused")
+	strong := a.el("strong")
+	setText(strong, "Playing in the player")
+	span := a.el("span")
+	setText(span, "Close the player to show this preview again.")
+	card.Call("append", strong, span)
+	return card
 }
 
 func getEmbedRenderSignature(link Link) embedRenderSignature {
@@ -739,7 +762,7 @@ func (a *App) handleWebviewToggle(event js.Value) {
 	}
 
 	if !a.isViewOnly {
-		a.setStatus("Use View Page to open playlist players.")
+		a.setStatus("Use Preview Page to open playlist players.")
 		return
 	}
 
@@ -1058,19 +1081,6 @@ func (a *App) addPlaylistFromInput() {
 	a.persistAndRender()
 }
 
-func (a *App) addSpotifyPreview() {
-	for _, link := range a.state.Playlist.Links {
-		if isSpotifyPreview(link) {
-			a.setStatus("Spotify preview is already on the page.")
-			return
-		}
-	}
-
-	a.state.Playlist.Links = append([]Link{createSpotifyPreviewLink()}, a.state.Playlist.Links...)
-	a.setStatus("Spotify preview added.")
-	a.persistAndRender()
-}
-
 func (a *App) renderViewMode() {
 	if !a.isViewOnly {
 		a.activeWebviewLinkID = ""
@@ -1286,10 +1296,6 @@ func createSpotifyPreviewLink() Link {
 		Title:    "Spotify playlist",
 		EmbedURL: createSpotifyEmbedURL("playlist", "37i9dQZF1DXcBWIGoYBM5M"),
 	}
-}
-
-func isSpotifyPreview(link Link) bool {
-	return link.Platform == "Spotify" && strings.Contains(link.URL, "37i9dQZF1DXcBWIGoYBM5M")
 }
 
 func createSpotifyEmbedURL(kind, id string) string {

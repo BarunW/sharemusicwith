@@ -887,8 +887,8 @@ textarea:focus-visible,
 .deck-display {
   display: grid;
   align-content: center;
-  min-height: 0;
-  padding: 8px 16px;
+  min-height: 96px;
+  padding: 14px 18px;
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.34), rgba(0, 0, 0, 0.2));
@@ -902,14 +902,14 @@ textarea:focus-visible,
   border-top: none;
 }
 .deck-display #previewBio {
-  font-size: 11px;
+  font-size: 13px;
 }
 
 /* Pets panel on the right. */
 .deck-pets {
   display: grid;
   place-items: center;
-  min-width: clamp(104px, 12vw, 130px);
+  min-width: clamp(88px, 10vw, 108px);
   padding: 8px;
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -1040,6 +1040,19 @@ textarea:focus-visible,
   text-transform: uppercase;
 }
 
+/* When the pill is a link (music blocks), signal it opens the source service. */
+.platform-pill[href] {
+  text-decoration: none;
+  transition:
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.platform-pill[href]:hover {
+  background: color-mix(in srgb, var(--accent) 40%, rgba(255, 255, 255, 0.14));
+  transform: translateY(-1px);
+}
+
 .music-meta a {
   min-width: 0;
   overflow: hidden;
@@ -1128,6 +1141,25 @@ textarea:focus-visible,
   min-width: 0;
   overflow: hidden;
   border-top: 1px solid color-mix(in srgb, var(--line) 74%, transparent);
+}
+
+.embed-paused {
+  min-height: 120px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 5px;
+  padding: 18px;
+  text-align: center;
+  color: var(--muted);
+}
+.embed-paused strong {
+  color: var(--text);
+  font-weight: 800;
+}
+.embed-paused span {
+  font-size: 0.82rem;
+  line-height: 1.4;
 }
 
 .embed-target .fallback-link {
@@ -1497,6 +1529,15 @@ textarea:focus-visible,
   line-height: 1.45;
 }
 
+/* Inline guidance under the link composer so users know what to paste + that
+   the + button is the add action. */
+.composer-hint {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.74rem;
+  line-height: 1.4;
+}
+
 /* --- Publish / share flow + mode-aware chrome --- */
 .save-status {
   margin: 0;
@@ -1529,8 +1570,27 @@ textarea:focus-visible,
   width: 100%;
 }
 
+/* The primary action: a filled accent CTA so it reads as "the button to press"
+   against the ghost/outline controls around it. */
 .app-shell[data-mode="create"] #publishButton {
   display: block;
+  border-color: transparent;
+  background: linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 76%, #000));
+  color: #15110a;
+  font-size: 1rem;
+  min-height: 50px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 10px 26px color-mix(in srgb, var(--accent) 42%, transparent);
+}
+
+.app-shell[data-mode="create"] #publishButton:hover {
+  transform: translateY(-1px);
+  border-color: transparent;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, #fff), var(--accent));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.32),
+    0 14px 30px color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
 #saveStatus {
