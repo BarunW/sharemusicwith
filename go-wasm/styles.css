@@ -24,7 +24,7 @@
   --pet-marking: #fff3d5;
   --shadow: 0 22px 70px rgba(0, 0, 0, 0.36);
   --shadow-tight: 0 12px 34px rgba(0, 0, 0, 0.24);
-  --spotify-player-height: 400px;
+  --spotify-player-height: 450px;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo,
     "Liberation Mono", monospace;
 }
@@ -2978,17 +2978,21 @@ textarea:focus-visible,
   box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
-/* On the public page the whole phone scrolls as one surface so the footer CTA is
-   always reachable, instead of capping the embed list (which could clip the CTA
-   on shorter screens). */
-.app-shell[data-mode="view"] .phone {
+/* In public view surfaces the whole phone scrolls as one page, instead of
+   capping the embed list inside a fixed box. Apply the same model to the
+   author's View Page preview so /create#view matches /@handle visually. */
+.app-shell[data-mode="view"] .phone,
+.app-shell.view-only[data-mode="create"] .phone,
+.app-shell.view-only[data-mode="edit"] .phone {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   touch-action: pan-y;
 }
 
-.app-shell[data-mode="view"] .embed-stack {
+.app-shell[data-mode="view"] .embed-stack,
+.app-shell.view-only[data-mode="create"] .embed-stack,
+.app-shell.view-only[data-mode="edit"] .embed-stack {
   max-height: none;
   overflow: visible;
 }
@@ -3025,13 +3029,9 @@ textarea:focus-visible,
   font-size: 1.55rem;
 }
 
-/* Cap the embed list only in the author's compact PREVIEW (view-only while still
-   editing). On the real public page (data-mode="view") the whole phone scrolls
-   as one surface, so capping here would clip the list to a fixed box while the
-   embeds — overflow:visible — spill past it, leaving the footer CTA floating on
-   top of the spilled embeds. :not([data-mode="view"]) keeps the cap off the
-   public page and matches the compact rule's specificity so it actually wins. */
-.app-shell.view-only[data-density="compact"]:not([data-mode="view"]) .embed-stack {
+/* Compact non-public screens can cap the list; public surfaces and the
+   author's View Page preview use the whole-phone scroll model above. */
+.app-shell.view-only[data-density="compact"]:not([data-mode="view"]):not([data-mode="create"]):not([data-mode="edit"]) .embed-stack {
   max-height: min(58vh, 430px);
 }
 
@@ -3371,15 +3371,21 @@ textarea:focus-visible,
    the page fills the screen with no outer border/radius/shadow and no side
    gutters, so content uses the full width and the footer CTA is reachable. */
 @media (max-width: 520px) {
-  .app-shell[data-mode="view"].view-only .workspace {
+  .app-shell[data-mode="view"].view-only .workspace,
+  .app-shell.view-only[data-mode="create"] .workspace,
+  .app-shell.view-only[data-mode="edit"] .workspace {
     padding: 0;
   }
 
-  .app-shell[data-mode="view"].view-only .phone-stage {
+  .app-shell[data-mode="view"].view-only .phone-stage,
+  .app-shell.view-only[data-mode="create"] .phone-stage,
+  .app-shell.view-only[data-mode="edit"] .phone-stage {
     padding: 0;
   }
 
-  .app-shell[data-mode="view"].view-only .phone {
+  .app-shell[data-mode="view"].view-only .phone,
+  .app-shell.view-only[data-mode="create"] .phone,
+  .app-shell.view-only[data-mode="edit"] .phone {
     width: 100%;
     max-width: 100%;
     height: auto;
@@ -3392,7 +3398,9 @@ textarea:focus-visible,
   }
 
   /* Player-open: the player surface also goes edge-to-edge. */
-  .app-shell[data-mode="view"].view-only.has-webview .phone {
+  .app-shell[data-mode="view"].view-only.has-webview .phone,
+  .app-shell.view-only[data-mode="create"].has-webview .phone,
+  .app-shell.view-only[data-mode="edit"].has-webview .phone {
     width: 100%;
     max-width: 100%;
   }
