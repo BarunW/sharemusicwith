@@ -40,18 +40,23 @@ func NewRouter(st *store.Store, cfg config.Config) http.Handler {
 		trustedProxies: cfg.TrustedProxies,
 	}
 
+	// rl throttles unauthenticated reads/beacons; writeRL is a tighter bucket
+	// for writes (create/update), since create is unauthenticated and a loop
+	// could otherwise mint unlimited rows.
 	rl := newRateLimiter(cfg.RateLimitRPS, cfg.RateLimitBurst, cfg.TrustedProxies)
+	writeRL := newRateLimiter(cfg.RateLimitWriteRPS, cfg.RateLimitWriteBurst, cfg.TrustedProxies)
 
 	mux := http.NewServeMux()
 
-	// JSON API.
-	mux.HandleFunc("POST /api/playlists", s.createPlaylist)
+	// JSON API. Every endpoint is rate-limited per client IP except /healthz
+	// (probed by nginx/monitoring) and static assets (served by nginx in prod).
+	mux.Handle("POST /api/playlists", writeRL.middleware(http.HandlerFunc(s.createPlaylist)))
 	mux.Handle("GET /api/playlists/{handle}", rl.middleware(http.HandlerFunc(s.getPublicPlaylist)))
-	mux.HandleFunc("GET /api/playlists/{handle}/edit/{editToken}", s.getEditPlaylist)
-	mux.HandleFunc("PUT /api/playlists/{handle}/edit/{editToken}", s.updatePlaylist)
-	mux.HandleFunc("GET /api/handles/{handle}/available", s.checkHandleAvailable)
+	mux.Handle("GET /api/playlists/{handle}/edit/{editToken}", rl.middleware(http.HandlerFunc(s.getEditPlaylist)))
+	mux.Handle("PUT /api/playlists/{handle}/edit/{editToken}", writeRL.middleware(http.HandlerFunc(s.updatePlaylist)))
+	mux.Handle("GET /api/handles/{handle}/available", rl.middleware(http.HandlerFunc(s.checkHandleAvailable)))
 	mux.Handle("POST /api/events", rl.middleware(http.HandlerFunc(s.recordEvent)))
-	mux.HandleFunc("GET /api/discover", s.discover)
+	mux.Handle("GET /api/discover", rl.middleware(http.HandlerFunc(s.discover)))
 	mux.HandleFunc("GET /healthz", s.health)
 
 	// Static files + SPA fallback (handles "/", "/created", "/@handle...").

@@ -20,6 +20,11 @@ type Config struct {
 	TrustedProxies []*net.IPNet // proxies whose X-Forwarded-For we trust (e.g. nginx)
 	RateLimitRPS   float64      // token-bucket refill rate per client IP
 	RateLimitBurst int          // token-bucket capacity per client IP
+
+	// Stricter bucket for unauthenticated writes (playlist create/update),
+	// which hit the DB and — for create — require no auth at all.
+	RateLimitWriteRPS   float64
+	RateLimitWriteBurst int
 }
 
 // Load reads configuration from the environment with sane defaults.
@@ -32,6 +37,9 @@ func Load() Config {
 		TrustedProxies: parseCIDRs(getenv("TRUSTED_PROXIES", "127.0.0.1/32,::1/128")),
 		RateLimitRPS:   getenvFloat("RATE_LIMIT_RPS", 5),
 		RateLimitBurst: getenvInt("RATE_LIMIT_BURST", 10),
+
+		RateLimitWriteRPS:   getenvFloat("RATE_LIMIT_WRITE_RPS", 1),
+		RateLimitWriteBurst: getenvInt("RATE_LIMIT_WRITE_BURST", 5),
 	}
 }
 
