@@ -102,6 +102,12 @@ type App struct {
 	editToken   string
 	published   *publishResult
 
+	// loading is true while a server-backed page (view/edit) fetches its real
+	// state. It keeps the boot spinner up (data-booting) so the empty loading
+	// state isn't painted as the create-page placeholder skin (@yourhandle,
+	// default avatar, "Songs will show here") for the whole fetch.
+	loading bool
+
 	// Debounced autosave (edit mode) and live handle availability (create mode).
 	saveCb              js.Func
 	saveTimer           js.Value

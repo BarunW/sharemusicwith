@@ -76,6 +76,7 @@ func (a *App) applyRoute(r route) {
 	a.routeHandle = r.handle
 	a.editToken = r.editToken
 	a.activeWebviewLinkID = ""
+	a.loading = false
 
 	switch r.mode {
 	case ModeHome:
@@ -106,11 +107,13 @@ func (a *App) applyRoute(r route) {
 		a.renderCreatedPanel()
 	case ModeView:
 		a.isViewOnly = true
+		a.loading = true
 		a.state = loadingState("Loading page…")
 		a.render()
 		go a.loadServerState("/api/playlists/"+a.routeHandle, false)
 	case ModeEdit:
 		a.isViewOnly = a.window.Get("location").Get("hash").String() == "#view"
+		a.loading = true
 		a.state = loadingState("Loading editor…")
 		a.hydrateForm()
 		a.render()
@@ -146,6 +149,7 @@ func (a *App) loadServerState(path string, editable bool) {
 		return
 	}
 	a.state = st
+	a.loading = false
 	a.hydrateForm()
 	a.render()
 	if !editable {
@@ -160,6 +164,7 @@ func (a *App) showLoadError(message string) {
 		Density: "focused",
 	}
 	a.isViewOnly = true
+	a.loading = false
 	a.render()
 }
 
@@ -220,9 +225,16 @@ func (a *App) scheduleHandleCheck() {
 func (a *App) renderModeChrome() {
 	dataset := a.elements.AppShell.Get("dataset")
 	dataset.Set("mode", modeName(a.mode))
-	// The inline boot script in index.html sets data-booting to show a spinner
-	// for deep links while wasm downloads. Now that we're rendering, drop it.
-	dataset.Delete("booting")
+	// data-booting drives the full-screen boot spinner. The inline script in
+	// index.html sets it on first load; we keep it up while a view/edit page is
+	// still fetching its real state (a.loading) so the empty loading state isn't
+	// shown as the create-page placeholder skin — and set it on in-app
+	// navigations too, since the inline script only runs on the initial load.
+	if a.loading {
+		dataset.Set("booting", "1")
+	} else {
+		dataset.Delete("booting")
+	}
 }
 
 func modeName(m Mode) string {
