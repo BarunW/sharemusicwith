@@ -191,10 +191,11 @@ func (a *App) apiGetDiscover(section string) ([]discoverItem, error) {
 
 // ytTrack / ytPlaylist mirror the server's /api/youtube/... track listing.
 type ytTrack struct {
-	VideoID  string `json:"videoId"`
-	Title    string `json:"title"`
-	Artist   string `json:"artist"`
-	Position int64  `json:"position"`
+	VideoID   string `json:"videoId"`
+	Title     string `json:"title"`
+	Artist    string `json:"artist"`
+	Thumbnail string `json:"thumbnail"`
+	Position  int64  `json:"position"`
 }
 
 type ytPlaylist struct {

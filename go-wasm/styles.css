@@ -1178,13 +1178,15 @@ textarea:focus-visible,
   font-size: 1.05rem;
 }
 
+/* Compact one-line link-out row: logo, label, arrow. The tracklist below
+   carries the content, so this stays small. */
 .platform-card {
   position: relative;
-  display: grid;
-  gap: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   max-width: 100%;
-  min-height: 142px;
-  padding: 16px;
+  padding: 10px 12px;
   overflow: hidden;
   color: var(--text);
   text-decoration: none;
@@ -1197,82 +1199,48 @@ textarea:focus-visible,
   --platform-accent: #ff4b3e;
 }
 
-.platform-visual {
-  max-width: 100%;
-  display: grid;
-  grid-template-columns: 56px minmax(0, 1fr) 40px;
-  gap: 12px;
-  align-items: center;
-}
-
 .play-badge {
-  width: 56px;
-  height: 56px;
+  flex: none;
+  width: 38px;
+  height: 38px;
   display: grid;
   place-items: center;
   border-radius: 8px;
   background: #ff2f2f;
-  box-shadow: 0 12px 30px rgba(255, 47, 47, 0.2);
+  box-shadow: 0 8px 20px rgba(255, 47, 47, 0.2);
 }
 
 .play-badge::before {
   content: "";
   width: 0;
   height: 0;
-  margin-left: 4px;
-  border-top: 11px solid transparent;
-  border-bottom: 11px solid transparent;
-  border-left: 17px solid #fff;
-}
-
-.queue-lines {
-  display: grid;
-  gap: 8px;
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
-}
-
-.queue-lines span {
-  height: 7px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--text) 44%, transparent);
-}
-
-.queue-lines span:nth-child(2) {
-  width: 74%;
-  opacity: 0.72;
-}
-
-.queue-lines span:nth-child(3) {
-  width: 48%;
-  opacity: 0.52;
+  margin-left: 3px;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 12px solid #fff;
 }
 
 .open-arrow {
-  width: 40px;
-  height: 40px;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  margin-left: auto;
   border: 1px solid color-mix(in srgb, var(--platform-accent) 42%, var(--line));
   border-radius: 999px;
   display: grid;
   place-items: center;
-  font-size: 1.25rem;
+  font-size: 1.05rem;
   font-weight: 900;
   color: var(--text);
 }
 
 .platform-card strong {
-  justify-self: start;
-  font-size: 1.08rem;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 1rem;
   text-align: left;
-}
-
-.platform-card small {
-  justify-self: start;
-  color: var(--muted);
-  font-size: 0.86rem;
-  line-height: 1.45;
-  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Song listing fetched for YouTube / YouTube Music playlist links. */
@@ -1309,20 +1277,21 @@ textarea:focus-visible,
 }
 
 .yt-tracklist-items {
-  max-height: 264px;
+  max-height: 300px;
   margin: 0;
   padding: 4px 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   list-style: none;
   counter-reset: yt-track;
 }
 
 .yt-track {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr);
+  grid-template-columns: 26px 42px minmax(0, 1fr);
   column-gap: 10px;
-  align-items: baseline;
-  padding: 6px 14px;
+  align-items: center;
+  padding: 5px 14px;
   color: var(--text);
   text-decoration: none;
   counter-increment: yt-track;
@@ -1340,6 +1309,19 @@ textarea:focus-visible,
   font-variant-numeric: tabular-nums;
 }
 
+.yt-track-thumb {
+  width: 42px;
+  height: 42px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+}
+
+.yt-track-text {
+  display: grid;
+  min-width: 0;
+}
+
 .yt-track-title {
   display: block;
   overflow: hidden;
@@ -1351,7 +1333,6 @@ textarea:focus-visible,
 
 .yt-track-artist {
   display: block;
-  grid-column: 2;
   overflow: hidden;
   color: var(--muted);
   font-size: 0.76rem;
@@ -2868,15 +2849,9 @@ textarea:focus-visible,
     radial-gradient(circle at 86% 20%, rgba(255, 75, 62, 0.14), transparent 30%),
     linear-gradient(160deg, rgba(255, 251, 244, 0.45), rgba(236, 228, 214, 0.3));
 }
-.app-shell[data-theme="inkwash"] .queue-lines span {
-  background: color-mix(in srgb, #3a2c20 38%, transparent);
-}
 .app-shell[data-theme="inkwash"] .open-arrow {
   color: #c64a63;
   border-color: color-mix(in srgb, #e0536d 55%, rgba(90, 70, 55, 0.3));
-}
-.app-shell[data-theme="inkwash"] .platform-card small {
-  color: #6a5443;
 }
 
 /* "Open player" toggle (public page only) restyled for the light tile */
@@ -3308,15 +3283,6 @@ textarea:focus-visible,
     bottom: 4px;
     transform: scale(0.48);
     transform-origin: right bottom;
-  }
-
-  .platform-visual {
-    grid-template-columns: 46px minmax(0, 1fr);
-  }
-
-  .play-badge {
-    width: 46px;
-    height: 46px;
   }
 
   .open-arrow {

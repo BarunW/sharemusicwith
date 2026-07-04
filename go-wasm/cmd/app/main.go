@@ -931,6 +931,8 @@ func (a *App) createFallbackLink(link Link) js.Value {
 	return fallbackLink
 }
 
+// createYoutubeCard is a compact one-line link-out row: logo, label, arrow.
+// The tracklist below it carries the actual content, so the card stays small.
 func (a *App) createYoutubeCard(link Link) js.Value {
 	card := a.el("a")
 	card.Get("classList").Call("add", "platform-card", "youtube-card")
@@ -938,17 +940,8 @@ func (a *App) createYoutubeCard(link Link) js.Value {
 	card.Set("target", "_blank")
 	card.Set("rel", "noreferrer")
 
-	visual := a.el("div")
-	visual.Get("classList").Call("add", "platform-visual")
 	playBadge := a.el("span")
 	playBadge.Get("classList").Call("add", "play-badge")
-	queueLines := a.el("span")
-	queueLines.Get("classList").Call("add", "queue-lines")
-	queueLines.Call("append", a.el("span"), a.el("span"), a.el("span"))
-	openArrow := a.el("span")
-	openArrow.Get("classList").Call("add", "open-arrow")
-	setText(openArrow, "↗")
-	visual.Call("append", playBadge, queueLines, openArrow)
 
 	title := a.el("strong")
 	if link.Platform == "YouTube Music" {
@@ -957,14 +950,11 @@ func (a *App) createYoutubeCard(link Link) js.Value {
 		setText(title, "Open on YouTube")
 	}
 
-	small := a.el("small")
-	if link.EmbedURL != "" {
-		setText(small, "Public video and playlist link")
-	} else {
-		setText(small, "Public music playlist link")
-	}
+	openArrow := a.el("span")
+	openArrow.Get("classList").Call("add", "open-arrow")
+	setText(openArrow, "↗")
 
-	card.Call("append", visual, title, small)
+	card.Call("append", playBadge, title, openArrow)
 	return card
 }
 
@@ -1046,16 +1036,34 @@ func (a *App) fillYoutubeTracklist(container js.Value, pl *ytPlaylist) {
 		row.Set("href", "https://"+host+"/watch?v="+url.QueryEscape(tr.VideoID)+"&list="+url.QueryEscape(pl.ID))
 		row.Set("target", "_blank")
 		row.Set("rel", "noreferrer")
+
+		// Thumbnail slot renders as an empty placeholder square when the API
+		// had no image, so the text column stays aligned across rows.
+		var thumb js.Value
+		if strings.HasPrefix(tr.Thumbnail, "https://") || strings.HasPrefix(tr.Thumbnail, "data:image/") {
+			thumb = a.el("img")
+			thumb.Set("src", tr.Thumbnail)
+			thumb.Set("loading", "lazy")
+			thumb.Set("alt", "")
+		} else {
+			thumb = a.el("span")
+		}
+		thumb.Get("classList").Call("add", "yt-track-thumb")
+
+		text := a.el("span")
+		text.Get("classList").Call("add", "yt-track-text")
 		title := a.el("span")
 		title.Get("classList").Call("add", "yt-track-title")
 		setText(title, tr.Title)
-		row.Call("append", title)
+		text.Call("append", title)
 		if tr.Artist != "" {
 			artist := a.el("span")
 			artist.Get("classList").Call("add", "yt-track-artist")
 			setText(artist, tr.Artist)
-			row.Call("append", artist)
+			text.Call("append", artist)
 		}
+
+		row.Call("append", thumb, text)
 		li.Call("append", row)
 		list.Call("append", li)
 	}
@@ -1124,8 +1132,27 @@ func (a *App) handleViewWheel(event js.Value) {
 	if a.activeWebviewLinkID != "" && isNil(closest(event.Get("target"), "#publicPage")) {
 		return
 	}
+	// A tracklist under the pointer consumes the gesture natively until it
+	// hits its edge; only then does the page take over. Without this the
+	// page-level preventDefault below leaves the list scrollbar-only.
+	if tracklistCanScroll(event.Get("target"), event.Get("deltaY").Float()) {
+		return
+	}
 	event.Call("preventDefault")
 	a.scrollViewPlaylist(event.Get("deltaY").Float())
+}
+
+// tracklistCanScroll reports whether target sits inside a tracklist that can
+// still move in the given scroll direction (deltaY > 0 scrolls down).
+func tracklistCanScroll(target js.Value, deltaY float64) bool {
+	list := closest(target, ".yt-tracklist-items")
+	if isNil(list) {
+		return false
+	}
+	if deltaY < 0 {
+		return list.Get("scrollTop").Float() > 0
+	}
+	return list.Get("scrollTop").Float()+list.Get("clientHeight").Float() < list.Get("scrollHeight").Float()-1
 }
 
 func (a *App) handleViewTouchStart(event js.Value) {
@@ -1151,10 +1178,16 @@ func (a *App) handleViewTouchMove(event js.Value) {
 	if a.activeWebviewLinkID != "" && isNil(closest(event.Get("target"), "#publicPage")) {
 		return
 	}
-	event.Call("preventDefault")
 
 	nextY := event.Get("touches").Index(0).Get("clientY").Float()
-	a.scrollViewPlaylist(a.lastTouchY - nextY)
+	deltaY := a.lastTouchY - nextY
+	// Same native-scroll carve-out for tracklists as handleViewWheel.
+	if tracklistCanScroll(event.Get("target"), deltaY) {
+		a.lastTouchY = nextY
+		return
+	}
+	event.Call("preventDefault")
+	a.scrollViewPlaylist(deltaY)
 	a.lastTouchY = nextY
 }
 
