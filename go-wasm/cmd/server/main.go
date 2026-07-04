@@ -44,6 +44,9 @@ func main() {
 	if cfg.MetricsSalt == "" {
 		log.Print("warning: METRICS_SALT is unset — metric events are stored but not counted toward rankings")
 	}
+	if cfg.YouTubeAPIKey == "" {
+		log.Print("warning: YOUTUBE_API_KEY is unset — /api/youtube/playlists/{id}/tracks responds 503")
+	}
 
 	// Refresh the discovery rankings periodically from the (deduped, non-bot)
 	// events. Runs once at boot so the feed isn't empty, then every minute;

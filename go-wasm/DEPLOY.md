@@ -49,6 +49,7 @@ cp .env.example .env
 #   APP_IMAGE=ghcr.io/owner/repo:staging
 #   POSTGRES_PASSWORD=$(openssl rand -hex 32)
 #   METRICS_SALT=$(openssl rand -hex 32)
+#   YOUTUBE_API_KEY=<Data API v3 key>   # optional: enables playlist tracklists
 docker compose up -d            # pulls the image; starts app + db (Caddy is off)
 ```
 

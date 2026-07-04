@@ -37,6 +37,9 @@ services:
     environment:
       DATABASE_URL: "postgres://postgres:${POSTGRES_PASSWORD}@db:5432/playlists?sslmode=disable"
       METRICS_SALT: "${METRICS_SALT}"
+      # Enables YouTube playlist track listing (/api/youtube/...); optional —
+      # leave unset in .env and the endpoint responds 503 while all else works.
+      YOUTUBE_API_KEY: "${YOUTUBE_API_KEY:-}"
       # Requests arrive via a reverse proxy (host nginx, or Caddy on the `web`
       # network). With host nginx, Docker SNATs the published port so the peer is
       # the bridge gateway (a 172.x addr); with Caddy it's the container IP. Both

@@ -189,6 +189,40 @@ func (a *App) apiGetDiscover(section string) ([]discoverItem, error) {
 	return out.Items, nil
 }
 
+// ytTrack / ytPlaylist mirror the server's /api/youtube/... track listing.
+type ytTrack struct {
+	VideoID   string `json:"videoId"`
+	Title     string `json:"title"`
+	Artist    string `json:"artist"`
+	Thumbnail string `json:"thumbnail"`
+	Position  int64  `json:"position"`
+}
+
+type ytPlaylist struct {
+	ID        string    `json:"id"`
+	Title     string    `json:"title"`
+	Channel   string    `json:"channel"`
+	Tracks    []ytTrack `json:"tracks"`
+	Total     int       `json:"total"`
+	Truncated bool      `json:"truncated"`
+}
+
+// apiGetYoutubeTracks lists a YouTube/YouTube Music playlist's songs via the
+// server-side proxy (the API key never reaches the browser). ok=false on any
+// failure — including the feature being off server-side — so callers just
+// hide the tracklist instead of surfacing an error.
+func (a *App) apiGetYoutubeTracks(listID string) (ytPlaylist, bool) {
+	status, body, err := a.doFetch("GET", a.apiURL("/api/youtube/playlists/"+url.PathEscape(listID)+"/tracks"), "", "")
+	if err != nil || status != 200 {
+		return ytPlaylist{}, false
+	}
+	var pl ytPlaylist
+	if err := json.Unmarshal([]byte(body), &pl); err != nil {
+		return ytPlaylist{}, false
+	}
+	return pl, true
+}
+
 // apiPostEvent records a metric event. Fire-and-forget; callers wrap it in `go`.
 func (a *App) apiPostEvent(handle, eventType, linkID, platform string) {
 	body, err := json.Marshal(map[string]string{

@@ -114,6 +114,12 @@ type App struct {
 	handleCheckCb       js.Func
 	handleCheckTimer    js.Value
 	handleCheckTimerSet bool
+
+	// Fetched YouTube tracklists keyed by playlist list-ID. A nil value marks
+	// a failed fetch (mix, private, or the feature off server-side) so it is
+	// not retried this page load. Wasm runs single-threaded, so plain maps.
+	ytTracks        map[string]*ytPlaylist
+	ytTracksPending map[string]bool
 }
 
 func main() {
@@ -129,6 +135,8 @@ func newApp() *App {
 		document:         document,
 		window:           js.Global(),
 		responsivePlayer: js.Global().Call("matchMedia", responsivePlayerQuery),
+		ytTracks:         map[string]*ytPlaylist{},
+		ytTracksPending:  map[string]bool{},
 	}
 	app.elements = Elements{
 		AppShell:         document.Call("querySelector", ".app-shell"),
@@ -684,6 +692,14 @@ func (a *App) renderEmbedTarget(target js.Value, link Link) {
 	switch signature.Kind {
 	case "youtube":
 		target.Call("replaceChildren", a.createYoutubeCard(link))
+		if listID := youtubeListID(link); listID != "" {
+			tracklist := a.el("div")
+			tracklist.Get("classList").Call("add", "yt-tracklist")
+			tracklist.Get("dataset").Set("listId", listID)
+			tracklist.Get("dataset").Set("watchHost", youtubeWatchHost(link))
+			target.Call("append", tracklist)
+			a.renderYoutubeTracklist(tracklist, listID)
+		}
 	case "embed":
 		a.mountIframe(target, a.createEmbedIframe(link, link.Platform+" playlist embed"))
 	case "paused":
@@ -915,6 +931,8 @@ func (a *App) createFallbackLink(link Link) js.Value {
 	return fallbackLink
 }
 
+// createYoutubeCard is a compact one-line link-out row: logo, label, arrow.
+// The tracklist below it carries the actual content, so the card stays small.
 func (a *App) createYoutubeCard(link Link) js.Value {
 	card := a.el("a")
 	card.Get("classList").Call("add", "platform-card", "youtube-card")
@@ -922,17 +940,8 @@ func (a *App) createYoutubeCard(link Link) js.Value {
 	card.Set("target", "_blank")
 	card.Set("rel", "noreferrer")
 
-	visual := a.el("div")
-	visual.Get("classList").Call("add", "platform-visual")
 	playBadge := a.el("span")
 	playBadge.Get("classList").Call("add", "play-badge")
-	queueLines := a.el("span")
-	queueLines.Get("classList").Call("add", "queue-lines")
-	queueLines.Call("append", a.el("span"), a.el("span"), a.el("span"))
-	openArrow := a.el("span")
-	openArrow.Get("classList").Call("add", "open-arrow")
-	setText(openArrow, "↗")
-	visual.Call("append", playBadge, queueLines, openArrow)
 
 	title := a.el("strong")
 	if link.Platform == "YouTube Music" {
@@ -941,15 +950,179 @@ func (a *App) createYoutubeCard(link Link) js.Value {
 		setText(title, "Open on YouTube")
 	}
 
-	small := a.el("small")
-	if link.EmbedURL != "" {
-		setText(small, "Public video and playlist link")
-	} else {
-		setText(small, "Public music playlist link")
+	openArrow := a.el("span")
+	openArrow.Get("classList").Call("add", "open-arrow")
+	setText(openArrow, "↗")
+
+	card.Call("append", playBadge, title, openArrow)
+	return card
+}
+
+// maxTracklistRows caps how many song rows are painted per card; the server
+// already caps a fetch at 500 tracks, and thousands of DOM rows would hurt
+// weak mobile browsers. The rest is reachable via the "+ n more" link.
+const maxTracklistRows = 100
+
+// renderYoutubeTracklist fills one tracklist container from the cache, or
+// shows a quiet loading line and kicks off the fetch. When the response
+// lands, every mounted container for that list ID is filled — re-renders may
+// have replaced the node the fetch started with.
+func (a *App) renderYoutubeTracklist(container js.Value, listID string) {
+	if pl, ok := a.ytTracks[listID]; ok {
+		a.fillYoutubeTracklist(container, pl)
+		return
 	}
 
-	card.Call("append", visual, title, small)
-	return card
+	loading := a.el("span")
+	loading.Get("classList").Call("add", "yt-tracklist-loading")
+	setText(loading, "Loading tracklist…")
+	container.Call("replaceChildren", loading)
+
+	if a.ytTracksPending[listID] {
+		return
+	}
+	a.ytTracksPending[listID] = true
+	go func() {
+		pl, ok := a.apiGetYoutubeTracks(listID)
+		delete(a.ytTracksPending, listID)
+		if ok {
+			a.ytTracks[listID] = &pl
+		} else {
+			a.ytTracks[listID] = nil
+		}
+		// listID passed isSafeListID, so it is safe inside a selector string.
+		nodes := a.document.Call("querySelectorAll", `.yt-tracklist[data-list-id="`+listID+`"]`)
+		for i := 0; i < nodes.Length(); i++ {
+			a.fillYoutubeTracklist(nodes.Index(i), a.ytTracks[listID])
+		}
+	}()
+}
+
+func (a *App) fillYoutubeTracklist(container js.Value, pl *ytPlaylist) {
+	if pl == nil || len(pl.Tracks) == 0 {
+		container.Call("replaceChildren")
+		container.Set("hidden", true)
+		return
+	}
+	container.Set("hidden", false)
+
+	host := datasetString(container, "watchHost")
+	if host == "" {
+		host = "www.youtube.com"
+	}
+
+	head := a.el("div")
+	head.Get("classList").Call("add", "yt-tracklist-head")
+	label := a.el("span")
+	setText(label, "Tracklist")
+	count := a.el("span")
+	total := pl.Total
+	if total < len(pl.Tracks) {
+		total = len(pl.Tracks)
+	}
+	setText(count, trackCount(total))
+	head.Call("append", label, count)
+
+	list := a.el("ol")
+	list.Get("classList").Call("add", "yt-tracklist-items")
+	shown := pl.Tracks
+	if len(shown) > maxTracklistRows {
+		shown = shown[:maxTracklistRows]
+	}
+	for _, tr := range shown {
+		li := a.el("li")
+		row := a.el("a")
+		row.Get("classList").Call("add", "yt-track")
+		row.Set("href", "https://"+host+"/watch?v="+url.QueryEscape(tr.VideoID)+"&list="+url.QueryEscape(pl.ID))
+		row.Set("target", "_blank")
+		row.Set("rel", "noreferrer")
+
+		// Thumbnail slot renders as an empty placeholder square when the API
+		// had no image, so the text column stays aligned across rows.
+		var thumb js.Value
+		if strings.HasPrefix(tr.Thumbnail, "https://") || strings.HasPrefix(tr.Thumbnail, "data:image/") {
+			thumb = a.el("img")
+			thumb.Set("src", tr.Thumbnail)
+			thumb.Set("loading", "lazy")
+			thumb.Set("alt", "")
+		} else {
+			thumb = a.el("span")
+		}
+		thumb.Get("classList").Call("add", "yt-track-thumb")
+
+		text := a.el("span")
+		text.Get("classList").Call("add", "yt-track-text")
+		title := a.el("span")
+		title.Get("classList").Call("add", "yt-track-title")
+		setText(title, tr.Title)
+		text.Call("append", title)
+		if tr.Artist != "" {
+			artist := a.el("span")
+			artist.Get("classList").Call("add", "yt-track-artist")
+			setText(artist, tr.Artist)
+			text.Call("append", artist)
+		}
+
+		row.Call("append", thumb, text)
+		li.Call("append", row)
+		list.Call("append", li)
+	}
+
+	container.Call("replaceChildren", head, list)
+
+	if rest := total - len(shown); rest > 0 {
+		more := a.el("a")
+		more.Get("classList").Call("add", "yt-tracklist-more")
+		more.Set("href", "https://"+host+"/playlist?list="+url.QueryEscape(pl.ID))
+		more.Set("target", "_blank")
+		more.Set("rel", "noreferrer")
+		setText(more, "+ "+fmt.Sprint(rest)+" more on YouTube")
+		container.Call("append", more)
+	}
+}
+
+// youtubeListID extracts the "list" playlist ID from a YouTube-family link,
+// returning "" when there is nothing listable: plain videos, mixes/radios
+// (RD… — auto-generated, not queryable), and the private Liked Music
+// playlist (LM).
+func youtubeListID(link Link) string {
+	if !isYoutubeFamily(link) {
+		return ""
+	}
+	parsed, err := url.Parse(link.URL)
+	if err != nil {
+		return ""
+	}
+	id := parsed.Query().Get("list")
+	if id == "" || id == "LM" || strings.HasPrefix(id, "RD") || !isSafeListID(id) {
+		return ""
+	}
+	return id
+}
+
+// isSafeListID mirrors the server-side charset check so the ID is safe to
+// embed in dataset attributes and querySelector strings.
+func isSafeListID(id string) bool {
+	if len(id) < 2 || len(id) > 64 {
+		return false
+	}
+	for _, r := range id {
+		ok := r == '-' || r == '_' ||
+			r >= '0' && r <= '9' || r >= 'A' && r <= 'Z' || r >= 'a' && r <= 'z'
+		if !ok {
+			return false
+		}
+	}
+	return true
+}
+
+// youtubeWatchHost picks where a track row should open: YouTube Music links
+// keep their listeners on music.youtube.com.
+func youtubeWatchHost(link Link) string {
+	if link.Platform == "YouTube Music" {
+		return "music.youtube.com"
+	}
+	return "www.youtube.com"
 }
 
 func (a *App) handleViewWheel(event js.Value) {
@@ -959,8 +1132,27 @@ func (a *App) handleViewWheel(event js.Value) {
 	if a.activeWebviewLinkID != "" && isNil(closest(event.Get("target"), "#publicPage")) {
 		return
 	}
+	// A tracklist under the pointer consumes the gesture natively until it
+	// hits its edge; only then does the page take over. Without this the
+	// page-level preventDefault below leaves the list scrollbar-only.
+	if tracklistCanScroll(event.Get("target"), event.Get("deltaY").Float()) {
+		return
+	}
 	event.Call("preventDefault")
 	a.scrollViewPlaylist(event.Get("deltaY").Float())
+}
+
+// tracklistCanScroll reports whether target sits inside a tracklist that can
+// still move in the given scroll direction (deltaY > 0 scrolls down).
+func tracklistCanScroll(target js.Value, deltaY float64) bool {
+	list := closest(target, ".yt-tracklist-items")
+	if isNil(list) {
+		return false
+	}
+	if deltaY < 0 {
+		return list.Get("scrollTop").Float() > 0
+	}
+	return list.Get("scrollTop").Float()+list.Get("clientHeight").Float() < list.Get("scrollHeight").Float()-1
 }
 
 func (a *App) handleViewTouchStart(event js.Value) {
@@ -986,10 +1178,16 @@ func (a *App) handleViewTouchMove(event js.Value) {
 	if a.activeWebviewLinkID != "" && isNil(closest(event.Get("target"), "#publicPage")) {
 		return
 	}
-	event.Call("preventDefault")
 
 	nextY := event.Get("touches").Index(0).Get("clientY").Float()
-	a.scrollViewPlaylist(a.lastTouchY - nextY)
+	deltaY := a.lastTouchY - nextY
+	// Same native-scroll carve-out for tracklists as handleViewWheel.
+	if tracklistCanScroll(event.Get("target"), deltaY) {
+		a.lastTouchY = nextY
+		return
+	}
+	event.Call("preventDefault")
+	a.scrollViewPlaylist(deltaY)
 	a.lastTouchY = nextY
 }
 
