@@ -12,4 +12,9 @@ export GOCACHE="${GOCACHE:-/tmp/connect-playlist-go-build-cache}"
 # and TRUSTED_PROXIES to your nginx address(es) so X-Forwarded-For is trusted.
 export METRICS_SALT="${METRICS_SALT:-dev-local-salt-change-in-prod}"
 
+# YOUTUBE_API_KEY (optional) enables GET /api/youtube/playlists/{id}/tracks,
+# which lists a YouTube/YouTube Music playlist's songs via the Data API v3.
+# Get a key: console.cloud.google.com -> enable "YouTube Data API v3" -> API key.
+# Without it the endpoint responds 503 and everything else works as before.
+
 go run ./cmd/server

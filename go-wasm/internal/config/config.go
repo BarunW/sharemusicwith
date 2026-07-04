@@ -25,6 +25,13 @@ type Config struct {
 	// which hit the DB and — for create — require no auth at all.
 	RateLimitWriteRPS   float64
 	RateLimitWriteBurst int
+
+	// YouTube Data API v3 key for the playlist track-listing endpoint;
+	// if empty, /api/youtube/... responds 503. The daily budget caps upstream
+	// fetches per UTC day (cache misses only) so hostile traffic cannot drain
+	// the API quota; <= 0 disables the cap.
+	YouTubeAPIKey      string
+	YouTubeDailyBudget int
 }
 
 // Load reads configuration from the environment with sane defaults.
@@ -40,6 +47,9 @@ func Load() Config {
 
 		RateLimitWriteRPS:   getenvFloat("RATE_LIMIT_WRITE_RPS", 1),
 		RateLimitWriteBurst: getenvInt("RATE_LIMIT_WRITE_BURST", 5),
+
+		YouTubeAPIKey:      os.Getenv("YOUTUBE_API_KEY"),
+		YouTubeDailyBudget: getenvInt("YOUTUBE_DAILY_BUDGET", 3000),
 	}
 }
 

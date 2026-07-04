@@ -114,6 +114,12 @@ type App struct {
 	handleCheckCb       js.Func
 	handleCheckTimer    js.Value
 	handleCheckTimerSet bool
+
+	// Fetched YouTube tracklists keyed by playlist list-ID. A nil value marks
+	// a failed fetch (mix, private, or the feature off server-side) so it is
+	// not retried this page load. Wasm runs single-threaded, so plain maps.
+	ytTracks        map[string]*ytPlaylist
+	ytTracksPending map[string]bool
 }
 
 func main() {
@@ -129,6 +135,8 @@ func newApp() *App {
 		document:         document,
 		window:           js.Global(),
 		responsivePlayer: js.Global().Call("matchMedia", responsivePlayerQuery),
+		ytTracks:         map[string]*ytPlaylist{},
+		ytTracksPending:  map[string]bool{},
 	}
 	app.elements = Elements{
 		AppShell:         document.Call("querySelector", ".app-shell"),
@@ -684,6 +692,14 @@ func (a *App) renderEmbedTarget(target js.Value, link Link) {
 	switch signature.Kind {
 	case "youtube":
 		target.Call("replaceChildren", a.createYoutubeCard(link))
+		if listID := youtubeListID(link); listID != "" {
+			tracklist := a.el("div")
+			tracklist.Get("classList").Call("add", "yt-tracklist")
+			tracklist.Get("dataset").Set("listId", listID)
+			tracklist.Get("dataset").Set("watchHost", youtubeWatchHost(link))
+			target.Call("append", tracklist)
+			a.renderYoutubeTracklist(tracklist, listID)
+		}
 	case "embed":
 		a.mountIframe(target, a.createEmbedIframe(link, link.Platform+" playlist embed"))
 	case "paused":
@@ -950,6 +966,155 @@ func (a *App) createYoutubeCard(link Link) js.Value {
 
 	card.Call("append", visual, title, small)
 	return card
+}
+
+// maxTracklistRows caps how many song rows are painted per card; the server
+// already caps a fetch at 500 tracks, and thousands of DOM rows would hurt
+// weak mobile browsers. The rest is reachable via the "+ n more" link.
+const maxTracklistRows = 100
+
+// renderYoutubeTracklist fills one tracklist container from the cache, or
+// shows a quiet loading line and kicks off the fetch. When the response
+// lands, every mounted container for that list ID is filled — re-renders may
+// have replaced the node the fetch started with.
+func (a *App) renderYoutubeTracklist(container js.Value, listID string) {
+	if pl, ok := a.ytTracks[listID]; ok {
+		a.fillYoutubeTracklist(container, pl)
+		return
+	}
+
+	loading := a.el("span")
+	loading.Get("classList").Call("add", "yt-tracklist-loading")
+	setText(loading, "Loading tracklist…")
+	container.Call("replaceChildren", loading)
+
+	if a.ytTracksPending[listID] {
+		return
+	}
+	a.ytTracksPending[listID] = true
+	go func() {
+		pl, ok := a.apiGetYoutubeTracks(listID)
+		delete(a.ytTracksPending, listID)
+		if ok {
+			a.ytTracks[listID] = &pl
+		} else {
+			a.ytTracks[listID] = nil
+		}
+		// listID passed isSafeListID, so it is safe inside a selector string.
+		nodes := a.document.Call("querySelectorAll", `.yt-tracklist[data-list-id="`+listID+`"]`)
+		for i := 0; i < nodes.Length(); i++ {
+			a.fillYoutubeTracklist(nodes.Index(i), a.ytTracks[listID])
+		}
+	}()
+}
+
+func (a *App) fillYoutubeTracklist(container js.Value, pl *ytPlaylist) {
+	if pl == nil || len(pl.Tracks) == 0 {
+		container.Call("replaceChildren")
+		container.Set("hidden", true)
+		return
+	}
+	container.Set("hidden", false)
+
+	host := datasetString(container, "watchHost")
+	if host == "" {
+		host = "www.youtube.com"
+	}
+
+	head := a.el("div")
+	head.Get("classList").Call("add", "yt-tracklist-head")
+	label := a.el("span")
+	setText(label, "Tracklist")
+	count := a.el("span")
+	total := pl.Total
+	if total < len(pl.Tracks) {
+		total = len(pl.Tracks)
+	}
+	setText(count, trackCount(total))
+	head.Call("append", label, count)
+
+	list := a.el("ol")
+	list.Get("classList").Call("add", "yt-tracklist-items")
+	shown := pl.Tracks
+	if len(shown) > maxTracklistRows {
+		shown = shown[:maxTracklistRows]
+	}
+	for _, tr := range shown {
+		li := a.el("li")
+		row := a.el("a")
+		row.Get("classList").Call("add", "yt-track")
+		row.Set("href", "https://"+host+"/watch?v="+url.QueryEscape(tr.VideoID)+"&list="+url.QueryEscape(pl.ID))
+		row.Set("target", "_blank")
+		row.Set("rel", "noreferrer")
+		title := a.el("span")
+		title.Get("classList").Call("add", "yt-track-title")
+		setText(title, tr.Title)
+		row.Call("append", title)
+		if tr.Artist != "" {
+			artist := a.el("span")
+			artist.Get("classList").Call("add", "yt-track-artist")
+			setText(artist, tr.Artist)
+			row.Call("append", artist)
+		}
+		li.Call("append", row)
+		list.Call("append", li)
+	}
+
+	container.Call("replaceChildren", head, list)
+
+	if rest := total - len(shown); rest > 0 {
+		more := a.el("a")
+		more.Get("classList").Call("add", "yt-tracklist-more")
+		more.Set("href", "https://"+host+"/playlist?list="+url.QueryEscape(pl.ID))
+		more.Set("target", "_blank")
+		more.Set("rel", "noreferrer")
+		setText(more, "+ "+fmt.Sprint(rest)+" more on YouTube")
+		container.Call("append", more)
+	}
+}
+
+// youtubeListID extracts the "list" playlist ID from a YouTube-family link,
+// returning "" when there is nothing listable: plain videos, mixes/radios
+// (RD… — auto-generated, not queryable), and the private Liked Music
+// playlist (LM).
+func youtubeListID(link Link) string {
+	if !isYoutubeFamily(link) {
+		return ""
+	}
+	parsed, err := url.Parse(link.URL)
+	if err != nil {
+		return ""
+	}
+	id := parsed.Query().Get("list")
+	if id == "" || id == "LM" || strings.HasPrefix(id, "RD") || !isSafeListID(id) {
+		return ""
+	}
+	return id
+}
+
+// isSafeListID mirrors the server-side charset check so the ID is safe to
+// embed in dataset attributes and querySelector strings.
+func isSafeListID(id string) bool {
+	if len(id) < 2 || len(id) > 64 {
+		return false
+	}
+	for _, r := range id {
+		ok := r == '-' || r == '_' ||
+			r >= '0' && r <= '9' || r >= 'A' && r <= 'Z' || r >= 'a' && r <= 'z'
+		if !ok {
+			return false
+		}
+	}
+	return true
+}
+
+// youtubeWatchHost picks where a track row should open: YouTube Music links
+// keep their listeners on music.youtube.com.
+func youtubeWatchHost(link Link) string {
+	if link.Platform == "YouTube Music" {
+		return "music.youtube.com"
+	}
+	return "www.youtube.com"
 }
 
 func (a *App) handleViewWheel(event js.Value) {

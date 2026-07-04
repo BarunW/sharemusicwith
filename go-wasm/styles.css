@@ -1275,6 +1275,103 @@ textarea:focus-visible,
   text-align: left;
 }
 
+/* Song listing fetched for YouTube / YouTube Music playlist links. */
+.yt-tracklist {
+  margin-top: 10px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.08));
+}
+
+.yt-tracklist[hidden] {
+  display: none;
+}
+
+.yt-tracklist-loading {
+  display: block;
+  padding: 10px 14px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.yt-tracklist-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.yt-tracklist-items {
+  max-height: 264px;
+  margin: 0;
+  padding: 4px 0;
+  overflow-y: auto;
+  list-style: none;
+  counter-reset: yt-track;
+}
+
+.yt-track {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  column-gap: 10px;
+  align-items: baseline;
+  padding: 6px 14px;
+  color: var(--text);
+  text-decoration: none;
+  counter-increment: yt-track;
+}
+
+.yt-track:hover,
+.yt-track:focus-visible {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+.yt-track::before {
+  content: counter(yt-track, decimal-leading-zero);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.yt-track-title {
+  display: block;
+  overflow: hidden;
+  font-size: 0.88rem;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.yt-track-artist {
+  display: block;
+  grid-column: 2;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.76rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.yt-tracklist-more {
+  display: block;
+  padding: 8px 14px 10px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-decoration: none;
+}
+
+.yt-tracklist-more:hover {
+  color: var(--text);
+}
+
 .playlist-inline-player {
   display: none;
   min-width: 0;
