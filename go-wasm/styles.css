@@ -2767,19 +2767,19 @@ textarea:focus-visible,
 .app-shell[data-theme="inkwash"] .playlist-card::after {
   content: "";
   position: absolute;
-  inset: -40px;
-  z-index: 3;
+  inset: -18px 0;
+  z-index: 0;
   pointer-events: none;
   background-image:
-    url("https://cdn.jsdelivr.net/gh/BarunW/sharemusicwith@main/go-wasm/assets/flora-branch-a.webp"),
-    url("https://cdn.jsdelivr.net/gh/BarunW/sharemusicwith@main/go-wasm/assets/flora-branch-b.webp");
+    url("/assets/flora-branch-a-v2.webp"),
+    url("/assets/flora-branch-b-v2.webp");
   background-repeat: no-repeat, no-repeat;
-  background-position: right -10px top -16px, left -10px bottom -10px;
-  background-size: 240px auto, 182px auto;
+  background-position: right -4px top -26px, left -2px bottom -2px;
+  background-size: 235px auto, 142px auto;
   filter: drop-shadow(0 6px 9px rgba(60, 30, 40, 0.16));
 }
 
-/* real content sits above the paper, below the blossoms */
+/* real content sits above both the paper and decorative blossoms */
 .app-shell[data-theme="inkwash"] .playlist-card > * {
   position: relative;
   z-index: 1;
@@ -2849,6 +2849,46 @@ textarea:focus-visible,
     radial-gradient(circle at 86% 20%, rgba(255, 75, 62, 0.14), transparent 30%),
     linear-gradient(160deg, rgba(255, 251, 244, 0.45), rgba(236, 228, 214, 0.3));
 }
+
+/* Track rows sit on the same light rice-paper tile, so the dark-theme text
+   variables need an ink-on-paper override for readable song details. */
+.app-shell[data-theme="inkwash"] .yt-tracklist {
+  border-color: rgba(77, 57, 42, 0.24);
+  background: linear-gradient(160deg, rgba(255, 253, 248, 0.7), rgba(227, 215, 196, 0.52));
+}
+.app-shell[data-theme="inkwash"] .yt-tracklist-head {
+  border-color: rgba(77, 57, 42, 0.2);
+  color: #745b48;
+}
+.app-shell[data-theme="inkwash"] .yt-track,
+.app-shell[data-theme="inkwash"] .yt-track-title {
+  color: #302219;
+}
+.app-shell[data-theme="inkwash"] .yt-track::before,
+.app-shell[data-theme="inkwash"] .yt-track-artist,
+.app-shell[data-theme="inkwash"] .yt-tracklist-loading,
+.app-shell[data-theme="inkwash"] .yt-tracklist-more {
+  color: #705745;
+}
+.app-shell[data-theme="inkwash"] .yt-track:hover,
+.app-shell[data-theme="inkwash"] .yt-track:focus-visible {
+  background: rgba(190, 72, 103, 0.1);
+}
+.app-shell[data-theme="inkwash"] .yt-tracklist-more {
+  border-color: rgba(77, 57, 42, 0.2);
+}
+.app-shell[data-theme="inkwash"] .yt-tracklist-more:hover {
+  color: #302219;
+}
+.app-shell[data-theme="inkwash"] .yt-tracklist-items {
+  scrollbar-color: rgba(190, 72, 103, 0.42) rgba(77, 57, 42, 0.08);
+}
+.app-shell[data-theme="inkwash"] .yt-tracklist-items::-webkit-scrollbar-thumb {
+  background: rgba(190, 72, 103, 0.42);
+}
+.app-shell[data-theme="inkwash"] .yt-tracklist-items::-webkit-scrollbar-track {
+  background: rgba(77, 57, 42, 0.08);
+}
 .app-shell[data-theme="inkwash"] .open-arrow {
   color: #c64a63;
   border-color: color-mix(in srgb, #e0536d 55%, rgba(90, 70, 55, 0.3));
@@ -2878,9 +2918,9 @@ textarea:focus-visible,
 /* scale the blossoms down on a narrow card so they frame, not crowd */
 @media (max-width: 520px) {
   .app-shell[data-theme="inkwash"] .playlist-card::after {
-    inset: -26px;
-    background-size: 168px auto, 130px auto;
-    background-position: right -6px top -10px, left -8px bottom -6px;
+    inset: -10px 0;
+    background-size: 160px auto, 112px auto;
+    background-position: right -2px top -22px, left 0 bottom 0;
   }
 }
 

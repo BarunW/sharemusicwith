@@ -72,9 +72,14 @@ func main() {
 		}
 	}()
 
+	handler, err := api.NewRouter(st, cfg)
+	if err != nil {
+		log.Fatalf("build router: %v", err)
+	}
+
 	srv := &http.Server{
 		Addr:              cfg.Addr,
-		Handler:           api.NewRouter(st, cfg),
+		Handler:           handler,
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      30 * time.Second,

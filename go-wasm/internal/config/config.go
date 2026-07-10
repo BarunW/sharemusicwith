@@ -14,6 +14,7 @@ type Config struct {
 	DatabaseURL string // required; e.g. postgres://user:pass@host:5432/db?sslmode=disable
 	Addr        string // listen address
 	StaticDir   string // directory containing index.html + assets
+	SiteURL     string // absolute public origin used by canonical/social URLs
 
 	// Metrics / ranking hardening.
 	MetricsSalt    string       // salt for visitor/IP hashes; if empty, ranking ingestion is disabled
@@ -40,6 +41,7 @@ func Load() Config {
 		DatabaseURL:    os.Getenv("DATABASE_URL"),
 		Addr:           getenv("ADDR", "0.0.0.0:8081"),
 		StaticDir:      getenv("STATIC_DIR", "."),
+		SiteURL:        getenv("SITE_URL", "https://sharemusicwith.live"),
 		MetricsSalt:    os.Getenv("METRICS_SALT"),
 		TrustedProxies: parseCIDRs(getenv("TRUSTED_PROXIES", "127.0.0.1/32,::1/128")),
 		RateLimitRPS:   getenvFloat("RATE_LIMIT_RPS", 5),

@@ -3,7 +3,27 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ShareMusicWith</title>
+    <title>{{.Title}}</title>
+    <meta name="description" content="{{.Description}}" />
+    <meta name="robots" content="{{.Robots}}" />
+    {{if .CanonicalURL}}<link rel="canonical" href="{{.CanonicalURL}}" />{{end}}
+    {{if .Social}}
+    <meta property="og:site_name" content="ShareMusicWith" />
+    <meta property="og:type" content="{{.OGType}}" />
+    <meta property="og:title" content="{{.Title}}" />
+    <meta property="og:description" content="{{.Description}}" />
+    <meta property="og:url" content="{{.CanonicalURL}}" />
+    <meta property="og:image" content="{{.OGImageURL}}" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="ShareMusicWith playlist page preview" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="{{.Title}}" />
+    <meta name="twitter:description" content="{{.Description}}" />
+    <meta name="twitter:image" content="{{.OGImageURL}}" />
+    {{end}}
+    {{if .JSONLD}}<script type="application/ld+json">{{.JSONLD}}</script>{{end}}
     <link rel="preconnect" href="https://www.youtube.com" />
     <link rel="preconnect" href="https://open.spotify.com" />
     <link rel="preconnect" href="https://embed.music.apple.com" />
@@ -19,7 +39,7 @@
     />
     <link rel="stylesheet" href="/styles.css" />
   </head>
-  <body>
+  <body{{if .BodyClass}} class="{{.BodyClass}}"{{end}}>
     <!-- Watercolor edge filter (used by the Ink Wash theme's playlist card):
          turbulence + displacement feathers the pigment-wash edges so they
          bleed like wet paint instead of sitting on hard gradient stops. -->
@@ -31,7 +51,7 @@
         </filter>
       </defs>
     </svg>
-    <main class="app-shell" data-theme="storybook" data-mode="create">
+    <main class="app-shell{{if .ShellClass}} {{.ShellClass}}{{end}}" data-theme="{{.Theme}}" data-mode="{{.Mode}}" data-density="{{.Density}}">
       <section class="workspace" aria-label="Playlist page builder">
         <aside class="panel editor-panel" aria-label="Page controls">
           <div class="brand-row">
@@ -107,16 +127,16 @@
             <section class="profile-card glass-card deck">
               <div class="deck-head">
                 <span class="deck-led" aria-hidden="true"></span>
-                <p class="handle" id="previewHandle">@dreamlistener</p>
+                <p class="handle" id="previewHandle">@{{.Handle}}</p>
               </div>
               <div class="deck-row">
                 <div class="deck-platter">
-                  <div class="avatar" id="avatar">D</div>
+                  <div class="avatar" id="avatar">{{.AvatarInitial}}</div>
                 </div>
                 <div class="deck-display">
-                  <h2 id="previewName">Dream Listener</h2>
+                  <h2 id="previewName">{{.DisplayName}}</h2>
                   <div class="bio-ticker" aria-label="bio">
-                    <p id="previewBio">A small public page for every playlist I want friends to hear.</p>
+                    <p id="previewBio">{{.Bio}}</p>
                   </div>
                 </div>
                 <div class="deck-pets">
@@ -147,7 +167,7 @@
             <section class="playlist-card glass-card">
               <div class="section-heading">
                 <p>Playlist</p>
-                <h3 id="previewTitle">Weekend Rotation</h3>
+                <h3 id="previewTitle">{{.PlaylistTitle}}</h3>
               </div>
 
               <section class="playlist-inline-player" id="playlistInlinePlayer" aria-label="Playlist player" hidden>
@@ -161,7 +181,18 @@
                 <div class="inline-player-frame" id="inlinePlayerFrame"></div>
               </section>
 
-              <div class="embed-stack" id="embedStack"></div>
+              <div class="embed-stack" id="embedStack">
+                {{range .Links}}
+                <article class="music-block" data-link-id="{{.ID}}">
+                  <div class="music-meta">
+                    <a class="platform-pill" href="{{.URL}}" target="_blank" rel="noreferrer">{{.Platform}}</a>
+                    <a class="playlist-name" href="{{.URL}}" target="_blank" rel="noreferrer">{{.Name}}</a>
+                    <button class="webview-toggle" type="button"></button>
+                  </div>
+                  <div class="embed-target"></div>
+                </article>
+                {{end}}
+              </div>
             </section>
 
             <section class="theme-note glass-card">
@@ -383,7 +414,7 @@
       <article class="music-block">
         <div class="music-meta">
           <span class="platform-pill"></span>
-          <a target="_blank" rel="noreferrer"></a>
+          <a class="playlist-name" target="_blank" rel="noreferrer"></a>
           <button class="webview-toggle" type="button"></button>
         </div>
         <div class="embed-target"></div>
@@ -397,10 +428,8 @@
       // deep links like /@handle or /@handle/edit/<token> flashed the editor.
       // The wasm app re-applies the same routing on boot and clears data-booting.
       //
-      // /create is gated too: its static preview ships with sample content
-      // (@dreamlistener / Weekend Rotation / storybook theme), so without the gate
-      // that mockup flashes on every load/refresh before wasm swaps in the real
-      // draft from localStorage.
+      // /create is gated too so the neutral server shell never flashes before
+      // wasm swaps in the real draft from localStorage.
       (function () {
         var p = location.pathname.replace(/^\/+|\/+$/g, "");
         var mode = "home";

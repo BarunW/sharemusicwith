@@ -3,20 +3,39 @@
 package api
 
 import (
+	"context"
 	"net"
 	"net/http"
 	"path/filepath"
 
 	"connect-with-playlist-wasm/internal/config"
+	"connect-with-playlist-wasm/internal/state"
 	"connect-with-playlist-wasm/internal/store"
 	"connect-with-playlist-wasm/internal/youtube"
 )
 
+// playlistStore is the persistence surface used by the HTTP layer. Keeping the
+// boundary as an interface makes route-aware HTML and crawler responses
+// testable without a PostgreSQL process.
+type playlistStore interface {
+	Ping(context.Context) error
+	CreatePlaylist(context.Context, string, state.State, []byte) (string, error)
+	GetByHandle(context.Context, string) (*store.Playlist, error)
+	IncrementViewCount(context.Context, string) (int64, error)
+	GetForEdit(context.Context, string, string) (*store.Playlist, error)
+	UpdateByToken(context.Context, string, string, state.State) error
+	HandleExists(context.Context, string) (bool, error)
+	InsertEvent(context.Context, string, string, string, string, string, string, []byte, []byte, bool) error
+	ListRankings(context.Context, string, int) ([]store.Ranking, error)
+	ListSitemapPages(context.Context) ([]store.SitemapPage, error)
+}
+
 // Server holds handler dependencies.
 type Server struct {
-	store        *store.Store
+	store        playlistStore
 	staticDir    string
 	staticDirAbs string
+	documents    *documentRenderer
 
 	metricsSalt    string
 	trustedProxies []*net.IPNet
@@ -33,15 +52,20 @@ type Server struct {
 // "/@handle" and "/@handle/edit/<token>" are served the SPA shell, while
 // everything else is a file lookup. API routes use the bare handle (no '@')
 // because Go's ServeMux wildcards must occupy a whole path segment.
-func NewRouter(st *store.Store, cfg config.Config) http.Handler {
+func NewRouter(st playlistStore, cfg config.Config) (http.Handler, error) {
 	abs, err := filepath.Abs(cfg.StaticDir)
 	if err != nil {
 		abs = cfg.StaticDir
+	}
+	documents, err := newDocumentRenderer(filepath.Join(abs, "index.html"), cfg.SiteURL)
+	if err != nil {
+		return nil, err
 	}
 	s := &Server{
 		store:          st,
 		staticDir:      cfg.StaticDir,
 		staticDirAbs:   abs,
+		documents:      documents,
 		metricsSalt:    cfg.MetricsSalt,
 		trustedProxies: cfg.TrustedProxies,
 	}
@@ -71,11 +95,13 @@ func NewRouter(st *store.Store, cfg config.Config) http.Handler {
 	// they consume rate tokens or YouTube quota.
 	mux.Handle("GET /api/youtube/playlists/{playlistID}/tracks", sameOriginOnly(rl.middleware(http.HandlerFunc(s.getYouTubeTracks))))
 	mux.HandleFunc("GET /healthz", s.health)
+	mux.HandleFunc("GET /robots.txt", s.serveRobots)
+	mux.HandleFunc("GET /sitemap.xml", s.serveSitemap)
 
 	// Static files + SPA fallback (handles "/", "/created", "/@handle...").
 	mux.HandleFunc("/", s.serveStaticOrIndex)
 
-	return mux
+	return mux, nil
 }
 
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {

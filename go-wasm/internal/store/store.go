@@ -43,6 +43,12 @@ type Playlist struct {
 	UpdatedAt time.Time
 }
 
+// SitemapPage is the minimal public-page row needed to build sitemap.xml.
+type SitemapPage struct {
+	Handle    string
+	UpdatedAt time.Time
+}
+
 // New opens a pool and verifies connectivity.
 func New(ctx context.Context, dsn string) (*Store, error) {
 	pool, err := pgxpool.New(ctx, dsn)
@@ -129,6 +135,26 @@ func (s *Store) GetByHandle(ctx context.Context, handle string) (*Playlist, erro
 		return nil, err
 	}
 	return &p, nil
+}
+
+// ListSitemapPages returns every published public page in stable URL order.
+func (s *Store) ListSitemapPages(ctx context.Context) ([]SitemapPage, error) {
+	rows, err := s.pool.Query(ctx,
+		`SELECT handle, updated_at FROM playlists ORDER BY handle`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	pages := make([]SitemapPage, 0)
+	for rows.Next() {
+		var page SitemapPage
+		if err := rows.Scan(&page.Handle, &page.UpdatedAt); err != nil {
+			return nil, err
+		}
+		pages = append(pages, page)
+	}
+	return pages, rows.Err()
 }
 
 // IncrementViewCount bumps and returns the page's view counter (raw hits).

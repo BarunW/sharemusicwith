@@ -31,13 +31,14 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o server ./cmd/server
 FROM gcr.io/distroless/static-debian12:nonroot
 WORKDIR /app
 COPY --from=build /src/server /app/server
-# Background/theme images are served from a CDN (jsDelivr) — see styles.css — so
-# they're intentionally NOT baked into the image.
+# Local UI and social-preview assets must ship with the server; several older
+# theme backgrounds still use CDN URLs, but route metadata uses /assets directly.
 # index.html comes from the wasm stage — that's where it was rewritten to
 # reference the hashed wasm. main.*.wasm matches the single content-hashed file.
 COPY --from=build /src/privacy.html /src/styles.css /app/
+COPY --from=build /src/assets /app/assets
 COPY --from=wasm  /src/index.html /src/main.*.wasm /src/wasm_exec.js /app/
-ENV ADDR=0.0.0.0:8081 STATIC_DIR=/app
+ENV ADDR=0.0.0.0:8081 STATIC_DIR=/app SITE_URL=https://sharemusicwith.live
 EXPOSE 8081
 USER nonroot:nonroot
 CMD ["/app/server"]
