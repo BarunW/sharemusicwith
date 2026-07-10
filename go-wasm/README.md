@@ -44,10 +44,11 @@ Then open `http://127.0.0.1:8081/`.
 
 ## Flow
 
-1. `/` — creation form. Pick a `@handle` (availability is checked live) and Publish.
-2. `/created` — shows the Public URL and the private Edit URL (save it; shown once).
-3. `/@handle` — public read-only page. Opening a player records a metric event.
-4. `/@handle/edit/<editToken>` — prefilled editor that autosaves to the server.
+1. `/` — discovery feed for public playlist pages.
+2. `/create` — creation form. Pick a `@handle` and publish.
+3. `/created` — shows the Public URL and the private Edit URL (save it; shown once).
+4. `/@handle` — public read-only page. Opening a player records a metric event.
+5. `/@handle/edit/<editToken>` — prefilled editor that autosaves to the server.
 
 If a requested handle is taken it is auto-suffixed (`@foo` → `@foo-2`), so
 publishing never fails.
@@ -62,8 +63,9 @@ publishing never fails.
 
 ## Configuration
 
-| Env var        | Default                          | Purpose                  |
-| -------------- | -------------------------------- | ------------------------ |
-| `DATABASE_URL` | (required)                       | Postgres DSN             |
-| `ADDR`         | `0.0.0.0:8081`                   | listen address           |
-| `STATIC_DIR`   | `.`                              | dir with index.html etc. |
+| Env var        | Default                           | Purpose                               |
+| -------------- | --------------------------------- | ------------------------------------- |
+| `DATABASE_URL` | (required)                        | Postgres DSN                          |
+| `ADDR`         | `0.0.0.0:8081`                    | listen address                        |
+| `STATIC_DIR`   | `.`                               | dir with index.html etc.              |
+| `SITE_URL`     | `https://sharemusicwith.live`     | Canonical/social/sitemap public origin |

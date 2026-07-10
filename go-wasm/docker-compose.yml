@@ -49,6 +49,7 @@ services:
       TRUSTED_PROXIES: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
       ADDR: "0.0.0.0:8081"
       STATIC_DIR: "/app"
+      SITE_URL: "https://${DOMAIN:-sharemusicwith.live}"
     depends_on:
       db:
         condition: service_healthy

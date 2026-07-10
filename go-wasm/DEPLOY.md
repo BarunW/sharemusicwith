@@ -47,6 +47,7 @@ git clone <repo> && cd <repo>/go-wasm
 cp .env.example .env
 # edit .env:
 #   APP_IMAGE=ghcr.io/owner/repo:staging
+#   DOMAIN=staging.example.com                # canonical/social/sitemap origin
 #   POSTGRES_PASSWORD=$(openssl rand -hex 32)
 #   METRICS_SALT=$(openssl rand -hex 32)
 #   YOUTUBE_API_KEY=<Data API v3 key>   # optional: enables playlist tracklists
@@ -76,6 +77,8 @@ curl -sf https://$DOMAIN/healthz                     # {"ok":true}  (also pings 
 curl -sI  http://$DOMAIN/                            # 301 → https
 curl -sI  https://$DOMAIN/main.wasm                  # 200, Content-Type: application/wasm,
                                                      #      Content-Encoding: gzip
+curl -sf https://$DOMAIN/robots.txt
+curl -sf https://$DOMAIN/sitemap.xml
 docker compose logs app | grep -i metrics_salt       # must NOT show "is unset"
 ```
 

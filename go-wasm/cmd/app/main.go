@@ -632,6 +632,7 @@ func (a *App) createEmbedBlock(link Link) js.Value {
 	pill.Set("rel", "noreferrer")
 
 	anchor := a.el("a")
+	anchor.Get("classList").Call("add", "playlist-name")
 	anchor.Set("target", "_blank")
 	anchor.Set("rel", "noreferrer")
 
@@ -655,7 +656,7 @@ func (a *App) updateEmbedBlock(block js.Value, link Link) {
 	setText(pill, link.Platform)
 	pill.Set("href", link.URL)
 
-	anchor := block.Call("querySelector", ".music-meta a")
+	anchor := block.Call("querySelector", ".music-meta .playlist-name")
 	anchor.Set("href", link.URL)
 	setText(anchor, getPlaylistName(link))
 
